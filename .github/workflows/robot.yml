@@ -1,0 +1,36 @@
+name: Robot SMC Or
+
+on:
+  schedule:
+    - cron: "*/15 * * * 0-5"   # toutes les 15 min, du dimanche au vendredi (UTC)
+  workflow_dispatch:            # bouton « Run workflow » pour lancer à la main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: robot-smc
+  cancel-in-progress: false
+
+jobs:
+  analyse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Analyse de l'or + alerte Telegram
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python robot.py --sans-graphique
+      - name: Mémoriser la dernière alerte (évite les doublons)
+        run: |
+          git config user.name "robot-smc"
+          git config user.email "robot-smc@users.noreply.github.com"
+          git add -f rapports/derniere_alerte.txt 2>/dev/null || true
+          git diff --cached --quiet || (git commit -m "Nouvelle alerte" && git push)

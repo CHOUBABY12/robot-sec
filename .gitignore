@@ -1,0 +1,3 @@
+rapports/*
+!rapports/derniere_alerte.txt
+__pycache__/

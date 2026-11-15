@@ -1,0 +1,75 @@
+# 🤖 Robot d'analyse SMC / ICT : Or (XAU/USD)
+
+Le robot analyse l'or sur 3 unités de temps (4h, 1h, 15m) avec les Smart Money Concepts.
+Il te donne un biais, un POI, une note de setup (A+, A, B ou C) et des entrées avec stop et objectifs.
+**Il ne passe aucun ordre** : tu restes maîtresse de tes décisions sur MetaTrader 5.
+
+---
+
+## 1. Installation (une seule fois, sur ton Mac)
+
+1. **Installe Python** : va sur https://www.python.org/downloads/, télécharge la dernière version pour macOS et installe-la (suivant, suivant…).
+2. **Place le dossier** `robot_smc` où tu veux, par exemple dans `Documents`.
+3. **Ouvre le Terminal** (Cmd + Espace, tape « Terminal », Entrée).
+4. Va dans le dossier du robot (adapte le chemin) :
+   ```
+   cd ~/Documents/robot_smc
+   ```
+5. Installe les bibliothèques :
+   ```
+   pip3 install -r requirements.txt
+   ```
+
+## 2. Lancer le robot
+
+Dans le Terminal, depuis le dossier du robot :
+
+| Commande | Effet |
+|---|---|
+| `python3 robot.py` | Une analyse complète + 3 graphiques |
+| `python3 robot.py --boucle 15` | Relance l'analyse toutes les 15 min (Ctrl + C pour arrêter) |
+| `python3 robot.py --capital 500 --risque 1` | Calcule la taille de lot pour ton compte |
+| `python3 robot.py --demo` | Test avec des données fictives (sans internet) |
+
+**Plus simple** : double-clique sur `lancer_robot.command`.
+La première fois, si le Mac bloque le fichier, fais clic droit → Ouvrir → Ouvrir.
+
+Les graphiques et l'historique des analyses sont enregistrés dans le dossier `rapports/`.
+
+## 3. Lire le rapport
+
+1. **Market structure** : la tendance swing / sub / mineure sur chaque UT (fractalisation) et le dernier BOS/CHoCH avec son type (fort, faible, piège).
+2. **Premium / Discount** : la jambe active avec son Fibonacci (1 = départ, 0,5 = équilibre, 0 = extrême, négatif = extensions), la zone actuelle et la condition de retracement.
+3. **Liquidité** : inducement, dernière liquidité avant le POI, liquidité cachée, resting liquidity (BSL/SSL), equal highs/lows, trendline, sweeps et pièges.
+4. **POI** : la meilleure zone (OB, FVG, Supply/Demand, breaker, flip) avec sa formation, sa qualité, son raffinement en 15m et la confirmation.
+5. **Key levels et outils** : PDH/PDL, PWH/PWL, opens, session Asie, nombres ronds, CRT, SMT or/argent, killzone.
+6. **Checklist** : le score de confluence sur 100.
+7. **Entrées** : agressive, 50 % du POI, raffinée (sniper) et sur confirmation, avec TP1/TP2/TP3, le ratio et la taille de lot.
+
+**Notes** : A+ (≥ 80), A (≥ 65), B (≥ 50), C (pas de trade).
+
+## 4. Concepts intégrés
+
+- **Structure** : pivots fractals à 3 niveaux (swing 10, sub 5, mineure 2 bougies), HH/HL/LH/LL, BOS (fort/displacement, faible, piège), CHoCH, condition de retracement (prise du bas ou du haut de la bougie précédente).
+- **Premium/Discount** : Fibonacci du low au high (ou du HL au HH) en haussier, du high au low (ou du LH au LL) en baissier, OTE 0,618–0,79, extensions -0,27 / -0,618 / -1.
+- **Zones** : Order Blocks (extrême, décisionnel, breaker, mitigation ; formations 1 bougie, multi-bougies, engulfing, avec FVG, avec prise de liquidité ; mean threshold ; version raffinée au corps), FVG / IFVG, Supply & Demand (RBR, DBR, DBD, RBD), flips SD/DS.
+- **Liquidité** : inducement, liquidity trap, sweeps, liquidité cachée, dernière liquidité, resting liquidity, EQH/EQL, double top/bottom, trendline.
+- **Outils** : key levels, sessions et killzones, CRT (D1 et 4h), SMT or/argent, gestion du risque.
+- **Entrées** : risk entry, mean threshold, raffinée/sniper, confirmation (CHoCH/BOS en LTF).
+
+## 5. Personnaliser
+
+Ouvre `config.py` avec TextEdit ou VS Code pour changer : les unités de temps, la taille des pivots, ton capital, ton % de risque, le ratio minimum…
+
+### Alertes sur ton iPhone (Telegram, facultatif)
+1. Dans Telegram, écris à **@BotFather** → `/newbot` → il te donne un **token**.
+2. Écris un message à ton nouveau bot, puis ouvre dans un navigateur :
+   `https://api.telegram.org/bot<TON_TOKEN>/getUpdates` et note le nombre après `"chat":{"id":`.
+3. Colle le token et l'id dans `config.py` (`TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`).
+4. Lance `python3 robot.py --boucle 15` : tu reçois une alerte à chaque setup A ou A+.
+
+## 6. Bon à savoir
+
+- Les prix viennent de Yahoo Finance (contrat à terme or `GC=F`). Ils peuvent différer de quelques dollars du XAU/USD de ton broker MT5 et ont environ 10 à 15 minutes de retard. Vérifie toujours les niveaux sur ton graphique MT5 avant d'entrer.
+- Avec 1 000 $ et 1 % de risque, tu ne risques que 10 $ par trade : les stops larges donnent souvent « moins de 0,01 lot ». Dans ce cas, privilégie l'entrée raffinée ou passe ton tour.
+- C'est un outil d'aide à la décision, **pas un conseil financier**. Teste-le plusieurs semaines en **compte démo** et note les résultats avant d'engager de l'argent réel.
