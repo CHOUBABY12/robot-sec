@@ -48,6 +48,7 @@ def main():
     p.add_argument("--capital", type=float, help=f"capital du compte (défaut {C.CAPITAL:g} $)")
     p.add_argument("--risque", type=float, help=f"%% risqué par trade (défaut {C.RISQUE_PCT:g})")
     p.add_argument("--sans-graphique", action="store_true", help="ne pas créer les images")
+    p.add_argument("--test-telegram", action="store_true", help="envoyer un message de test")
     p.add_argument("--demo", action="store_true", help="données fictives, sans internet")
     args = p.parse_args()
     if args.capital:
@@ -55,6 +56,8 @@ def main():
     if args.risque:
         C.RISQUE_PCT = args.risque
 
+    if args.test_telegram:
+        sys.exit(0 if R.message_test() else 1)
     if not args.boucle:
         une_analyse(args)
         return

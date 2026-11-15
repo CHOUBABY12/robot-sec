@@ -315,6 +315,23 @@ def message_alerte(r):
     return "\n".join(lignes), cle
 
 
+def message_test():
+    if not C.TELEGRAM_TOKEN or not C.TELEGRAM_CHAT_ID:
+        print("❌ Secrets Telegram manquants.")
+        return False
+    url = f"https://api.telegram.org/bot{C.TELEGRAM_TOKEN}/sendMessage"
+    data = urllib.parse.urlencode({"chat_id": C.TELEGRAM_CHAT_ID,
+        "text": "✅ Robot SMC Or en ligne sur GitHub : analyse toutes les 15 min, "
+                "même quand ton Mac est éteint."}).encode()
+    try:
+        urllib.request.urlopen(url, data=data, timeout=10)
+        print("✅ Message de test Telegram envoyé.")
+        return True
+    except Exception as ex:
+        print(f"❌ Telegram : {ex}")
+        return False
+
+
 def alerte_telegram(r):
     if not C.TELEGRAM_TOKEN or not C.TELEGRAM_CHAT_ID:
         return False
