@@ -1,3 +1,4 @@
 rapports/*
 !rapports/derniere_alerte.txt
 __pycache__/
+!rapports/dernier_resume.txt

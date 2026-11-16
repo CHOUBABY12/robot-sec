@@ -37,6 +37,8 @@ def une_analyse(args):
         f3 = R.graphique(res, "htf", nb=150)
         print(f"  📈 Graphiques : {f3}, {f1}, {f2}\n")
     R.sauvegarder_json(res)
+    if R.resume_quotidien(res):
+        print("  📲 Point du matin envoyé.\n")
     if R.alerte_telegram(res):
         print("  📲 Alerte Telegram envoyée.\n")
     return res

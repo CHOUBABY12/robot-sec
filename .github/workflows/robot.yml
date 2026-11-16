@@ -2,7 +2,7 @@ name: Robot SMC Or
 
 on:
   schedule:
-    - cron: "*/15 * * * 0-5"   # toutes les 15 min, du dimanche au vendredi (UTC)
+    - cron: "7 * * * 0-5"   # relance chaque heure si besoin (dimanche → vendredi, UTC)
   workflow_dispatch:            # bouton « Run workflow » pour lancer à la main
 
 permissions:
@@ -10,12 +10,12 @@ permissions:
 
 concurrency:
   group: robot-smc
-  cancel-in-progress: false
+  cancel-in-progress: false   # une seule session à la fois, la suivante attend
 
 jobs:
   analyse:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,10 +33,12 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python robot.py --sans-graphique
+        # GitHub retarde souvent les tâches programmées : le robot reste donc
+        # allumé ~5h40 par session et analyse lui-même toutes les 15 minutes.
+        run: timeout 20400 python robot.py --boucle 15 --sans-graphique || true
       - name: Mémoriser la dernière alerte (évite les doublons)
         run: |
           git config user.name "robot-smc"
           git config user.email "robot-smc@users.noreply.github.com"
-          git add -f rapports/derniere_alerte.txt 2>/dev/null || true
-          git diff --cached --quiet || (git commit -m "Nouvelle alerte" && git push)
+          for f in rapports/derniere_alerte.txt rapports/dernier_resume.txt; do [ -f "$f" ] && git add -f "$f"; done; true
+          git diff --cached --quiet || (git commit -m "Mémoire des alertes" && git pull --rebase -q && git push)

@@ -332,6 +332,45 @@ def message_test():
         return False
 
 
+def _envoyer(txt):
+    url = f"https://api.telegram.org/bot{C.TELEGRAM_TOKEN}/sendMessage"
+    data = urllib.parse.urlencode({"chat_id": C.TELEGRAM_CHAT_ID, "text": txt}).encode()
+    urllib.request.urlopen(url, data=data, timeout=10)
+
+
+def resume_quotidien(r):
+    """Petit point chaque matin (vers 8h, heure de Paris), pour savoir que le robot tourne."""
+    if not C.TELEGRAM_TOKEN or not C.TELEGRAM_CHAT_ID:
+        return False
+    from zoneinfo import ZoneInfo
+    maintenant = datetime.now(ZoneInfo("Europe/Paris"))
+    if maintenant.weekday() >= 5 or not (7 <= maintenant.hour < 10):
+        return False
+    fichier = os.path.join("rapports", "dernier_resume.txt")
+    jour = maintenant.strftime("%Y-%m-%d")
+    try:
+        if open(fichier, encoding="utf-8").read().strip() == jour:
+            return False
+    except OSError:
+        pass
+    poi = r["poi"]
+    sens = {1: "🟢 haussier", -1: "🔴 baissier", 0: "⚪ neutre"}[r["biais"]]
+    txt = (f"☀️ Point du matin — {C.NOM_MARCHE}\n"
+           f"Prix : {r['prix']:.2f} | Biais : {sens}\n"
+           f"Setup actuel : note {r['note']} ({r['score']}/100)\n"
+           + (f"Zone à surveiller : {poi['nom']} {poi['bas']:.2f}–{poi['haut']:.2f}\n" if poi else "")
+           + f"{r['statut']}\n"
+           "Le robot tourne et t'alertera dès qu'un setup A ou A+ apparaît.")
+    try:
+        _envoyer(txt)
+        os.makedirs("rapports", exist_ok=True)
+        open(fichier, "w", encoding="utf-8").write(jour)
+        return True
+    except Exception as ex:
+        print(f"  (résumé Telegram non envoyé : {ex})")
+        return False
+
+
 def alerte_telegram(r):
     if not C.TELEGRAM_TOKEN or not C.TELEGRAM_CHAT_ID:
         return False
