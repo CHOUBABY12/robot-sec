@@ -82,6 +82,7 @@ def main():
     p.add_argument("--sans-graphique", action="store_true", help="ne pas créer les images")
     p.add_argument("--test-telegram", action="store_true", help="envoyer un message de test")
     p.add_argument("--bilan", action="store_true", help="afficher (et envoyer) les statistiques")
+    p.add_argument("--test-news", action="store_true", help="afficher les annonces fortes USD de la semaine")
     p.add_argument("--demo", action="store_true", help="données fictives, sans internet")
     args = p.parse_args()
     if args.capital:
@@ -91,6 +92,12 @@ def main():
 
     if args.test_telegram:
         sys.exit(0 if R.message_test() else 1)
+    if args.test_news:
+        a = N.charger(forcer=True)
+        print(f"📰 {len(a)} annonce(s) forte(s) USD cette semaine :")
+        for x in a:
+            print(f"   {N.heure_paris(x['date'])}  {x['titre']}")
+        return
     if args.bilan:
         R.bilan_hebdo(J.charger(), forcer=True)
         return
