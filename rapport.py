@@ -16,6 +16,11 @@ def _p(x):
     return f"{x:,.{C.DECIMALES}f}".replace(",", " ")
 
 
+def _maintenant_paris():
+    from zoneinfo import ZoneInfo
+    return datetime.now(ZoneInfo("Europe/Paris"))
+
+
 def _dev():
     return "€" if C.DEVISE_COMPTE == "EUR" else "$"
 
@@ -27,7 +32,7 @@ def _titre(t):
 def afficher(r, demo=False):
     icone = {1: "🟢 HAUSSIER", -1: "🔴 BAISSIER", 0: "⚪ NEUTRE"}
     print("\n" + "═" * L)
-    print(f"  🤖 ROBOT SMC — {C.NOM_MARCHE}   {datetime.now():%d/%m/%Y %H:%M}" + ("  [DÉMO]" if demo else ""))
+    print(f"  🤖 ROBOT SMC — {C.NOM_MARCHE}   {_maintenant_paris():%d/%m/%Y %H:%M}" + ("  [DÉMO]" if demo else ""))
     print("═" * L)
     print(f"  Source des prix : {C.SOURCE_PRIX}")
     if C.ECART_MT5 and C.SOURCE_PRIX.startswith("Yahoo"):
