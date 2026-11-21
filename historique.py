@@ -24,7 +24,15 @@ DOSSIER = "data"
 SERIES = {
     ("xauusd", "m15"): "xauusd_m15.csv.gz",
     ("xauusd", "h1"): "xauusd_h1.csv.gz",
-    ("xagusd", "h1"): "xagusd_h1.csv.gz",     # argent, pour la SMT
+    ("xagusd", "m15"): "xagusd_m15.csv.gz",
+    ("xagusd", "h1"): "xagusd_h1.csv.gz",          # argent (et SMT de l'or)
+    ("eurusd", "m15"): "eurusd_m15.csv.gz",
+    ("eurusd", "h1"): "eurusd_h1.csv.gz",
+    ("gbpusd", "m15"): "gbpusd_m15.csv.gz",
+    ("gbpusd", "h1"): "gbpusd_h1.csv.gz",
+    ("usatechidxusd", "m15"): "nas100_m15.csv.gz",  # Nasdaq 100
+    ("usatechidxusd", "h1"): "nas100_h1.csv.gz",
+    ("usa500idxusd", "h1"): "us500_h1.csv.gz",      # S&P 500 (SMT du Nasdaq)
 }
 
 
@@ -117,12 +125,16 @@ def main():
     p = argparse.ArgumentParser(description="Historique Dukascopy")
     p.add_argument("action", choices=["telecharger", "mettre-a-jour", "info"])
     p.add_argument("--debut", default="2021-01-01")
+    p.add_argument("--instruments", default="", help="ex. xagusd,eurusd (vide = tous)")
     a = p.parse_args()
+    choix = [x.strip() for x in a.instruments.split(",") if x.strip()]
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     if a.action == "info":
         info()
         return
     for (ins, tf) in SERIES:
+        if choix and ins not in choix:
+            continue
         debut = a.debut
         if a.action == "mettre-a-jour":
             df = lire(ins, tf)

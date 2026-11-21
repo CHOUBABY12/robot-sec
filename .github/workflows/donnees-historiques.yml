@@ -11,6 +11,9 @@ on:
       debut:
         description: "Date de début (pour telecharger)"
         default: "2021-01-01"
+      instruments:
+        description: "Instruments (vide = tous), ex. xagusd,eurusd"
+        default: ""
 
 permissions:
   contents: write
@@ -36,7 +39,7 @@ jobs:
       - name: Navigateur pour Dukascopy (protection anti-robots)
         run: npx --yes dukascopy-node --install-browser || true
       - name: Téléchargement
-        run: python historique.py "${{ inputs.action }}" --debut "${{ inputs.debut }}"
+        run: python historique.py "${{ inputs.action }}" --debut "${{ inputs.debut }}" --instruments "${{ inputs.instruments }}"
       - run: python historique.py info
       - name: Enregistrer les données dans le dépôt
         run: |
