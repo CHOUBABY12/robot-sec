@@ -7,7 +7,9 @@ RÉGLAGES DU ROBOT : tu peux modifier toutes ces valeurs.
 # --- Marchés -----------------------------------------------------------------
 # Marchés analysés en direct (alertes Telegram). Un marché n'est ajouté ici que
 # s'il a été rentable sur 5 ans de backtest (voir rapports/optimisation_*.md).
-MARCHES_ACTIFS = ["XAUUSD"]
+# Résultats (nov. 2026, réglages actuels) : or et EUR/USD gagnants sur 2021-2024 ET 2025-2026 ;
+# argent tout juste positif ; GBP/USD et Nasdaq pas rentables → non activés.
+MARCHES_ACTIFS = ["XAUUSD", "EURUSD"]
 
 # Fiche de chaque marché :
 #  yahoo / twelvedata / dukascopy : symboles des sources de prix (None = indisponible)
