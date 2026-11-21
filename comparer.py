@@ -175,6 +175,8 @@ def main():
     p.add_argument("--coupure", default="2025-01-01", help="début de la période de vérification")
     p.add_argument("--min-trades", type=int, default=60, help="minimum de trades en apprentissage")
     p.add_argument("--telegram", action="store_true", help="envoyer le résumé sur Telegram")
+    p.add_argument("--candidat", action="append", default=[],
+                   help='variante à détailler, ex. "A|auto|hors Asie|BE au TP1|8"')
     a = p.parse_args()
     t0 = time.time()
     sig, barres = charger(a.demo)
@@ -235,6 +237,27 @@ def main():
             na = np.mean([r[1]["trades_mois"] for r in grp])
             dire(f"- {val!s:<13} R moyen/trade : apprentissage {ra:+.3f} | vérification {rv:+.3f}"
                  f"  ({na:.1f} trades/mois)")
+
+    # 2 bis. détail par année et par sens (achats / ventes) pour quelques variantes
+    def lire_candidat(txt):
+        n, e, se, g, va = [x.strip() for x in txt.split("|")]
+        return {"note": n, "entree": e, "sessions": se, "gestion": g, "validite": int(va)}
+
+    a_detailler = [REFERENCE] + [r[0] for r in eligibles[:2]] + [lire_candidat(c) for c in a.candidat]
+    dire("\n## Détail par année et par sens (achats / ventes)")
+    for v in a_detailler:
+        tr = [t for t in m.trades(v) if t["statut"] in ("gagné", "perdu", "break-even")]
+        if not tr:
+            continue
+        df = pd.DataFrame([{"an": pd.Timestamp(t["t"], tz="UTC").year, "sens": sig[t["i"]]["sens"],
+                            "R": t["R"]} for t in tr])
+        dire(f"\n`{nom_variante(v)}`")
+        dire("- par année : " + " | ".join(f"{k} {g.R.sum():+.0f} R ({len(g)})" for k, g in df.groupby("an")))
+        for sens, nom in ((1, "achats"), (-1, "ventes")):
+            g = df[df.sens == sens]
+            if len(g):
+                dire(f"- {nom} : {g.R.sum():+.1f} R sur {len(g)} trades "
+                     f"({100 * (g.R > 0.05).mean():.0f} % gagnants, {g.R.mean():+.2f} R/trade)")
 
     # 3. poids de la checklist mesurés sur les données
     dire("\n## Poids de la checklist mesurés sur les données (apprentissage)")
