@@ -1,7 +1,7 @@
 # ⚖️ Optimisation du robot SMC — OR (XAU/USD)
 34062 signaux. Apprentissage : 14/02/2021 → 01/01/2025 | Vérification : 01/01/2025 → 20/11/2026
 
-675 variantes testées en 20 s.
+675 variantes testées en 21 s.
 
 ## Réglage actuel du robot
 `note ≥ A | auto | toutes | BE au TP1 | 4h`
@@ -87,6 +87,28 @@ Variantes gagnantes en apprentissage : 475/592 ; gagnantes aussi en vérificatio
 - 4             R moyen/trade : apprentissage +0.053 | vérification +0.067  (5.2 trades/mois)
 - 8             R moyen/trade : apprentissage +0.053 | vérification +0.083  (5.6 trades/mois)
 - 12            R moyen/trade : apprentissage +0.048 | vérification +0.082  (5.8 trades/mois)
+
+## Détail par année et par sens (achats / ventes)
+
+`note ≥ A | auto | toutes | BE au TP1 | 4h`
+- par année : 2021 +5 R (82) | 2022 +12 R (91) | 2023 +30 R (115) | 2024 +11 R (112) | 2025 +21 R (94) | 2026 +18 R (71)
+- achats : +59.7 R sur 285 trades (48 % gagnants, +0.21 R/trade)
+- ventes : +35.7 R sur 280 trades (49 % gagnants, +0.13 R/trade)
+
+`note ≥ B | auto | hors Asie | BE au TP2 | 8h`
+- par année : 2021 +27 R (127) | 2022 +23 R (160) | 2023 +50 R (174) | 2024 +11 R (160) | 2025 +16 R (176) | 2026 +32 R (109)
+- achats : +60.2 R sur 502 trades (43 % gagnants, +0.12 R/trade)
+- ventes : +99.4 R sur 404 trades (47 % gagnants, +0.25 R/trade)
+
+`note ≥ B | auto | hors Asie | BE au TP1 | 8h`
+- par année : 2021 +25 R (131) | 2022 +29 R (160) | 2023 +46 R (180) | 2024 +11 R (163) | 2025 +15 R (176) | 2026 +34 R (109)
+- achats : +65.6 R sur 504 trades (45 % gagnants, +0.13 R/trade)
+- ventes : +94.3 R sur 415 trades (48 % gagnants, +0.23 R/trade)
+
+`note ≥ A | auto | hors Asie | BE au TP1 | 8h`
+- par année : 2021 +7 R (78) | 2022 +22 R (89) | 2023 +33 R (116) | 2024 -1 R (108) | 2025 +23 R (88) | 2026 +33 R (64)
+- achats : +63.2 R sur 281 trades (48 % gagnants, +0.22 R/trade)
+- ventes : +53.3 R sur 262 trades (50 % gagnants, +0.20 R/trade)
 
 ## Poids de la checklist mesurés sur les données (apprentissage)
 | Confluence | R moyen si oui | si non | écart | poids actuel → mesuré |
