@@ -29,6 +29,8 @@ Dans le Terminal, depuis le dossier du robot :
 | `python3 robot.py` | Une analyse complète + 3 graphiques |
 | `python3 robot.py --boucle 15` | Relance l'analyse toutes les 15 min (Ctrl + C pour arrêter) |
 | `python3 robot.py --capital 500 --risque 1` | Calcule la taille de lot pour ton compte |
+| `python3 robot.py --bilan` | Statistiques du journal des trades (taux de réussite, R gagnés…) |
+| `python3 backtest.py` | Rejoue le robot sur les ~2 derniers mois pour voir ce qu'il aurait gagné |
 | `python3 robot.py --demo` | Test avec des données fictives (sans internet) |
 
 **Plus simple** : double-clique sur `lancer_robot.command`.
@@ -68,7 +70,32 @@ Ouvre `config.py` avec TextEdit ou VS Code pour changer : les unités de temps, 
 3. Colle le token et l'id dans `config.py` (`TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`).
 4. Lance `python3 robot.py --boucle 15` : tu reçois une alerte à chaque setup A ou A+.
 
-## 6. Bon à savoir
+## 6. Journal des trades, bilan et backtest
+
+- **Journal** : chaque alerte envoyée est enregistrée dans `rapports/journal.json`. À chaque analyse,
+  le robot regarde ce que le prix a fait : ordre déclenché, TP1/TP2/TP3 touchés, stop… et t'envoie
+  un message de suivi sur Telegram. Gestion simulée : 50 % fermés au TP1 + stop à l'entrée,
+  30 % au TP2, le reste au TP3. Un ordre non déclenché en 4 h, ou si le prix part au TP1 sans
+  lui, est compté « annulé ».
+- **Bilan** : chaque vendredi soir (après 21h), un bilan de la semaine et depuis le début arrive
+  sur Telegram (taux de réussite, résultat en R et en €, par note, par session, par méthode).
+- **Backtest** : sur GitHub, onglet **Actions** → **Backtest** → **Run workflow**. Choisis la note
+  minimum (A, A+ ou B). Le résumé arrive sur Telegram et le détail se télécharge en bas de la page
+  (`resultats-backtest`). Limite : Yahoo ne donne que ~2 mois de bougies 15 min.
+
+## 7. Réglages à faire une fois
+
+- **`ECART_MT5`** : compare le prix d'une alerte avec le prix XAU/USD de ton MT5 au même moment.
+  Si le robot dit 2 660 et MT5 2 645, mets `ECART_MT5 = 15`. Tous les niveaux seront alors au prix MT5.
+- **`FUSEAU_SERVEUR_MT5`** : heure serveur de ton broker (par défaut GMT+2/+3 = `"Europe/Athens"`),
+  pour que les bougies 4h et journalières soient les mêmes que sur ton MT5.
+- **`SPREAD`** : spread moyen de l'or chez ton broker, ajouté au stop.
+- **Annonces** : pas d'alerte 30 min avant / après une annonce forte USD (NFP, CPI, FOMC…).
+  Les annonces du jour sont listées dans le point du matin.
+
+## 8. Bon à savoir
+
+- Le robot n'analyse que les bougies **fermées** : un BOS/CHoCH n'est validé qu'à la clôture.
 
 - Les prix viennent de Yahoo Finance (contrat à terme or `GC=F`). Ils peuvent différer de quelques dollars du XAU/USD de ton broker MT5 et ont environ 10 à 15 minutes de retard. Vérifie toujours les niveaux sur ton graphique MT5 avant d'entrer.
 - Avec 1 000 $ et 1 % de risque, tu ne risques que 10 $ par trade : les stops larges donnent souvent « moins de 0,01 lot ». Dans ce cas, privilégie l'entrée raffinée ou passe ton tour.

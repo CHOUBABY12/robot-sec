@@ -29,6 +29,8 @@ def afficher(r, demo=False):
     print("\n" + "═" * L)
     print(f"  🤖 ROBOT SMC — {C.NOM_MARCHE}   {datetime.now():%d/%m/%Y %H:%M}" + ("  [DÉMO]" if demo else ""))
     print("═" * L)
+    if C.ECART_MT5:
+        print(f"  (prix corrigés pour MT5 : écart de {C.ECART_MT5:g} $ retiré)")
     print(f"  Prix : {_p(r['prix'])} $    ATR {C.UT_MTF} : {r['mtf']['atr_der']:.2f} $")
     print(f"  Biais : {icone[r['biais']]}    Note du setup : {r['note']}   (confluence {r['score']}/100)")
     print(f"  ➜ {r['statut']}")
@@ -273,15 +275,20 @@ def type_ordre(sens, entree, prix, atr):
     return "SELL LIMIT" if entree > prix else "SELL STOP"
 
 
-def message_alerte(r):
+def message_alerte(r, e=None, ordre=None, annonces=None):
     from datetime import timedelta
-    e = choisir_entree(r)
+    import nouvelles as N
+    e = e or choisir_entree(r)
     if e is None:
-        return None, None
+        return None
     s = r["sens"]
-    ordre = type_ordre(s, e["entree"], r["prix"], r["ltf"]["atr_der"])
+    ordre = ordre or type_ordre(s, e["entree"], r["prix"], r["ltf"]["atr_der"])
     risque_pts = abs(e["entree"] - e["stop"])
-    fin = (datetime.now() + timedelta(hours=C.VALIDITE_ORDRE_H)).strftime("%H:%M")
+    from zoneinfo import ZoneInfo
+    depart = r.get("maintenant")
+    depart = depart.to_pydatetime() if hasattr(depart, "to_pydatetime") else (depart or datetime.now(ZoneInfo("UTC")))
+    # heure de Paris (les serveurs GitHub sont à l'heure UTC)
+    fin = (depart + timedelta(hours=C.VALIDITE_ORDRE_H)).astimezone(ZoneInfo("Europe/Paris")).strftime("%H:%M")
     poi = r["poi"]
     invalid = poi["haut"] if s == -1 else poi["bas"]
     lignes = [
@@ -308,11 +315,16 @@ def message_alerte(r):
         f"🔎 POI : {poi['nom']} {poi['bas']:.2f}–{poi['haut']:.2f}",
         "✅ " + " | ".join(t for ok, t, _ in r["check"] if ok)[:300],
         f"ℹ️ {r['statut']}",
-        "",
-        "⚠️ Compte DÉMO. Vérifie sur MT5 (léger écart de prix possible) avant d'entrer.",
     ]
-    cle = f"{r['note']}|{s}|{round(e['entree'], 0)}"
-    return "\n".join(lignes), cle
+    proch = N.prochaines(annonces, r.get("maintenant"), heures=C.VALIDITE_ORDRE_H + 2)
+    if proch:
+        lignes += ["", "📰 Annonce forte USD bientôt : " + ", ".join(
+            f"{a['titre']} ({N.heure_paris(a['date'])})" for a in proch[:3])
+            + " → prudence, réduis le risque ou attends après."]
+    lignes += ["", "⚠️ Compte DÉMO. Vérifie sur MT5 avant d'entrer"
+               + (" (prix déjà corrigés de l'écart MT5)." if C.ECART_MT5 else
+                  " (léger écart de prix possible : règle ECART_MT5 dans config.py).")]
+    return "\n".join(lignes)
 
 
 def message_test():
@@ -338,7 +350,17 @@ def _envoyer(txt):
     urllib.request.urlopen(url, data=data, timeout=10)
 
 
-def resume_quotidien(r):
+def _annonces_du_jour(annonces):
+    import nouvelles as N
+    a = N.prochaines(annonces, heures=16)
+    if not a:
+        return ""
+    return ("📰 Annonces fortes USD aujourd'hui : "
+            + ", ".join(f"{x['titre']} ({N.heure_paris(x['date'])[-5:]})" for x in a)
+            + f" — pas d'alerte {C.NEWS_AVANT_MIN} min avant / {C.NEWS_APRES_MIN} min après.\n")
+
+
+def resume_quotidien(r, annonces=None):
     """Petit point chaque matin (vers 8h, heure de Paris), pour savoir que le robot tourne."""
     if not C.TELEGRAM_TOKEN or not C.TELEGRAM_CHAT_ID:
         return False
@@ -360,7 +382,8 @@ def resume_quotidien(r):
            f"Setup actuel : note {r['note']} ({r['score']}/100)\n"
            + (f"Zone à surveiller : {poi['nom']} {poi['bas']:.2f}–{poi['haut']:.2f}\n" if poi else "")
            + f"{r['statut']}\n"
-           "Le robot tourne et t'alertera dès qu'un setup A ou A+ apparaît.")
+           + _annonces_du_jour(annonces)
+           + "Le robot tourne et t'alertera dès qu'un setup A ou A+ apparaît.")
     try:
         _envoyer(txt)
         os.makedirs("rapports", exist_ok=True)
@@ -371,32 +394,79 @@ def resume_quotidien(r):
         return False
 
 
-def alerte_telegram(r):
-    if not C.TELEGRAM_TOKEN or not C.TELEGRAM_CHAT_ID:
-        return False
-    ordre = ["C", "B", "A", "A+"]
-    if ordre.index(r["note"]) < ordre.index(C.NOTE_MINI_ALERTE):
-        return False
-    txt, cle = message_alerte(r)
+def telegram_actif():
+    return bool(C.TELEGRAM_TOKEN and C.TELEGRAM_CHAT_ID)
+
+
+def alerte_telegram(r, e, ordre, annonces=None):
+    """Envoie l'alerte. Renvoie True si envoyée (ou si Telegram n'est pas configuré)."""
+    txt = message_alerte(r, e, ordre, annonces)
     if not txt:
         return False
-    fichier_cle = os.path.join("rapports", "derniere_alerte.txt")
+    if not telegram_actif():
+        print("  (Telegram non configuré : alerte affichée ici seulement)\n" + txt)
+        return True
     try:
-        if open(fichier_cle, encoding="utf-8").read().strip() == cle:
-            return False
-    except OSError:
-        pass
-    url = f"https://api.telegram.org/bot{C.TELEGRAM_TOKEN}/sendMessage"
-    data = urllib.parse.urlencode({"chat_id": C.TELEGRAM_CHAT_ID, "text": txt}).encode()
-    try:
-        urllib.request.urlopen(url, data=data, timeout=10)
-        os.makedirs("rapports", exist_ok=True)
-        with open(fichier_cle, "w", encoding="utf-8") as f:
-            f.write(cle)
+        _envoyer(txt)
         return True
     except Exception as ex:
         print(f"  (Telegram non envoyé : {ex})")
         return False
+
+
+def notifier_suivi(changes):
+    """Prévient sur Telegram quand un trade du journal avance (entrée, TP, stop…)."""
+    for t, evts in changes:
+        sens = "ACHAT" if t["sens"] == 1 else "VENTE"
+        txt = (f"📒 Suivi du trade n°{t['id']} ({sens} {t['note']}, alerte du "
+               f"{t['date_alerte'][8:10]}/{t['date_alerte'][5:7]})\n" + "\n".join(evts))
+        if t["statut"] in ("gagné", "perdu", "break-even"):
+            icone = {"gagné": "✅", "perdu": "❌", "break-even": "↩️"}[t["statut"]]
+            txt += f"\n{icone} Trade terminé : {t['statut']} ({t['resultat_R']:+.2f} R)"
+        print("  " + txt.replace("\n", "\n  "))
+        if telegram_actif():
+            try:
+                _envoyer(txt)
+            except Exception as ex:
+                print(f"  (Telegram non envoyé : {ex})")
+
+
+def bilan_hebdo(journal, maintenant=None, forcer=False):
+    """Bilan de la semaine, le vendredi soir (après 21h, heure de Paris), une seule fois."""
+    import journal as J
+    from zoneinfo import ZoneInfo
+    m = (maintenant or datetime.now(ZoneInfo("Europe/Paris")))
+    m = m.astimezone(ZoneInfo("Europe/Paris"))
+    semaine = m.strftime("%G-S%V")
+    fichier = os.path.join("rapports", "dernier_bilan.txt")
+    if not forcer:
+        if m.weekday() != 4 or m.hour < 21:
+            return False
+        try:
+            if open(fichier, encoding="utf-8").read().strip() == semaine:
+                return False
+        except OSError:
+            pass
+    debut = (m - timedelta_jours(m.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    sem = [t for t in journal if J._ts(t["date_alerte"]) >= J._ts(debut)]
+    txt = J.texte_stats(J.stats(sem), f"📊 Bilan de la semaine — {C.NOM_MARCHE}")
+    txt += "\n\n" + J.texte_stats(J.stats(journal), "📚 Depuis le début")
+    print("\n" + txt + "\n")
+    if not telegram_actif():
+        return False
+    try:
+        _envoyer(txt)
+        os.makedirs("rapports", exist_ok=True)
+        open(fichier, "w", encoding="utf-8").write(semaine)
+        return True
+    except Exception as ex:
+        print(f"  (bilan Telegram non envoyé : {ex})")
+        return False
+
+
+def timedelta_jours(n):
+    from datetime import timedelta
+    return timedelta(days=n)
 
 
 def sauvegarder_json(r, dossier="rapports"):

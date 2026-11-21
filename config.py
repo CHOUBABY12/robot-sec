@@ -50,6 +50,31 @@ SESSIONS_UTC = {
     "Clôture Londres": (15, 17),
 }
 
+# --- Alignement avec ton MetaTrader 5 ----------------------------------------
+# Écart de prix : (prix affiché par le robot) - (prix XAU/USD sur ton MT5).
+# Exemple : le robot affiche 2 660 et MT5 2 645 → ECART_MT5 = 15.
+# Tous les niveaux (entrée, stop, TP) sont alors donnés directement au prix MT5.
+# Vérifie-le de temps en temps (il change surtout quand le contrat à terme change).
+ECART_MT5 = 0.0
+# Fuseau de l'heure serveur de ton broker (pour que les bougies 4h et journalières
+# soient découpées comme sur ton MT5). La plupart des brokers sont en GMT+2 l'hiver
+# et GMT+3 l'été, ce qui correspond à "Europe/Athens".
+FUSEAU_SERVEUR_MT5 = "Europe/Athens"
+SPREAD = 0.30             # spread moyen de l'or chez ton broker ($), ajouté au stop
+
+# --- Fenêtre d'analyse (nombre de bougies gardées par UT) ---------------------
+FENETRE = {"htf": 700, "mtf": 1500, "ltf": 1200}
+
+# --- Filtre des annonces économiques (NFP, CPI, FOMC…) -----------------------
+FILTRE_NEWS = True
+NEWS_AVANT_MIN = 30       # pas d'alerte 30 min avant une annonce forte USD
+NEWS_APRES_MIN = 30       # … ni 30 min après
+
+# --- Suivi des trades (journal) ----------------------------------------------
+PARTIELS = (0.5, 0.3, 0.2)   # part fermée à TP1 / TP2 / TP3 (stop à l'entrée après TP1)
+DUREE_MAX_TRADE_H = 72       # au-delà, le trade est considéré clôturé au prix du moment
+ANTI_DOUBLON_H = 12          # pas de 2e alerte sur le même POI pendant 12 h
+
 # --- Notifications Telegram (optionnel, laisse vide pour désactiver) --------
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")   # secret GitHub
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")  # secret GitHub

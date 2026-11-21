@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Téléchargement des prix (Yahoo Finance) et données de démonstration."""
+"""
+Téléchargement des prix (Yahoo Finance) et données de démonstration.
+
+Améliorations :
+- seules les bougies FERMÉES sont analysées (plus de faux BOS/CHoCH sur une bougie en cours)
+- les bougies 4h et journalières sont découpées à l'heure serveur de ton MT5
+- l'écart de prix Yahoo / MT5 (ECART_MT5) est retiré de tous les prix de l'or
+"""
 import sys
 
 import numpy as np
@@ -10,8 +17,33 @@ import config as C
 AGG = {"Open": "first", "High": "max", "Low": "min", "Close": "last"}
 
 
+def _regle(ut: str) -> str:
+    """'15m' → '15min' (pandas), '4h' → '4h'."""
+    return ut[:-1] + "min" if ut.endswith("m") else ut
+
+
+def duree(ut: str) -> pd.Timedelta:
+    return pd.Timedelta(_regle(ut))
+
+
 def regrouper(df: pd.DataFrame, regle: str) -> pd.DataFrame:
-    return df.resample(regle).agg(AGG).dropna()
+    return df.resample(_regle(regle)).agg(AGG).dropna()
+
+
+def regrouper_serveur(df: pd.DataFrame, regle: str) -> pd.DataFrame:
+    """Regroupe en suivant l'heure serveur MT5 (bougies 4h / D1 identiques à MT5)."""
+    tz = C.FUSEAU_SERVEUR_MT5
+    local = df.tz_convert(tz).tz_localize(None)          # heure "murale" du serveur
+    x = local.resample(_regle(regle)).agg(AGG).dropna()  # bougies à 0h, 4h, 8h… heure serveur
+    x.index = x.index.tz_localize(tz, ambiguous=False, nonexistent="shift_forward")
+    return x.tz_convert("Europe/Paris")
+
+
+def fermees(df, d: pd.Timedelta, maintenant: pd.Timestamp):
+    """Garde uniquement les bougies terminées à l'instant `maintenant`."""
+    if df is None or df.empty:
+        return df
+    return df[df.index + d <= maintenant]
 
 
 def _yahoo(symbole, intervalle, periode):
@@ -32,44 +64,94 @@ def _yahoo(symbole, intervalle, periode):
     return df
 
 
-def _charger_ut(symbole, ut):
-    """Récupère une unité de temps ; 4h est reconstruit à partir du 1h."""
-    if ut == "4h":
-        h1 = _yahoo(symbole, "1h", "729d")
-        return None if h1 is None else regrouper(h1, "4h")
-    periodes = {"1m": "7d", "5m": "59d", "15m": "59d", "30m": "59d",
-                "1h": "729d", "1d": "5y"}
-    return _yahoo(symbole, ut, periodes.get(ut, "60d"))
+PERIODES = {"1m": "7d", "5m": "59d", "15m": "59d", "30m": "59d", "1h": "729d"}
 
 
-def charger_tout():
-    print("⏳ Téléchargement des données…")
-    d = {
-        "htf": _charger_ut(C.SYMBOLE, C.UT_HTF),
-        "mtf": _charger_ut(C.SYMBOLE, C.UT_MTF),
-        "ltf": _charger_ut(C.SYMBOLE, C.UT_LTF),
-        "d1": _charger_ut(C.SYMBOLE, "1d"),
-    }
-    for k, v in d.items():
-        if v is None or len(v) < 60:
+# ---------------------------------------------------------------------------
+# Construction des unités de temps à partir des données brutes
+# ---------------------------------------------------------------------------
+def _faire_ut(ut, h1, ltf_brut):
+    if ut == C.UT_LTF:
+        return ltf_brut
+    if ut == "1h":
+        return h1
+    base = h1 if duree(ut) >= pd.Timedelta("1h") else ltf_brut
+    return regrouper_serveur(base, ut)
+
+
+def construire(h1, ltf_brut, ag_h1=None, maintenant=None):
+    """
+    Prépare les unités de temps pour l'analyse, telles qu'elles étaient à `maintenant`
+    (sert aussi au backtest). h1 / ltf_brut / ag_h1 = données brutes 1h, LTF, argent 1h.
+    """
+    maintenant = maintenant or pd.Timestamp.now(tz="UTC")
+    h1 = fermees(h1, pd.Timedelta("1h"), maintenant)
+    ltf_brut = fermees(ltf_brut, duree(C.UT_LTF), maintenant)
+    d = {}
+    for cle, ut in (("htf", C.UT_HTF), ("mtf", C.UT_MTF), ("ltf", C.UT_LTF)):
+        df = fermees(_faire_ut(ut, h1, ltf_brut), duree(ut), maintenant)
+        d[cle] = df.iloc[-C.FENETRE[cle]:]
+    # D1 à l'heure serveur ; la dernière bougie (en cours) est gardée volontairement
+    # pour l'open du jour et le CRT (qui utilise les 2 bougies précédentes).
+    d["d1"] = regrouper_serveur(h1, "1D").iloc[-450:]
+    d["ltf_complet"] = ltf_brut              # pour le suivi des trades du journal
+    d["smt"] = None
+    if ag_h1 is not None and len(ag_h1):
+        ag = fermees(ag_h1, pd.Timedelta("1h"), maintenant)
+        ag = ag if C.UT_MTF == "1h" else fermees(regrouper_serveur(ag, C.UT_MTF),
+                                                 duree(C.UT_MTF), maintenant)
+        d["smt"] = ag.iloc[-C.FENETRE["mtf"]:]
+    d["maintenant"] = maintenant
+    return d
+
+
+def _verifier(d):
+    for k, mini in (("htf", 60), ("mtf", 60), ("ltf", 60), ("d1", 25)):
+        v = d[k]
+        if v is None or len(v) < mini:
             sys.exit(f"❌ Données insuffisantes ({k}). Vérifie ta connexion internet "
                      "ou réessaie dans quelques minutes.")
-    d["smt"] = _charger_ut(C.SYMBOLE_SMT, C.UT_MTF)   # facultatif
+    return d
+
+
+def _corriger_ecart(df):
+    if df is None or not C.ECART_MT5:
+        return df
+    return df - C.ECART_MT5
+
+
+def charger_brut():
+    """Télécharge les données brutes : or 1h, or LTF, argent 1h."""
+    print("⏳ Téléchargement des données…")
+    h1 = _corriger_ecart(_yahoo(C.SYMBOLE, "1h", PERIODES["1h"]))
+    ltf = _corriger_ecart(_yahoo(C.SYMBOLE, C.UT_LTF, PERIODES.get(C.UT_LTF, "59d")))
+    if h1 is None or ltf is None:
+        sys.exit("❌ Impossible de télécharger les prix. Vérifie ta connexion internet "
+                 "ou réessaie dans quelques minutes.")
+    try:
+        ag = _yahoo(C.SYMBOLE_SMT, "1h", PERIODES["1h"])   # facultatif
+    except Exception:
+        ag = None
     try:
         fx = _yahoo("EURUSD=X", "1d", "5d")
         if fx is not None and len(fx):
             C.TAUX_EURUSD = float(fx["Close"].iloc[-1])
     except Exception:
         pass
-    return d
+    return h1, ltf, ag
+
+
+def charger_tout(maintenant=None):
+    h1, ltf, ag = charger_brut()
+    return _verifier(construire(h1, ltf, ag, maintenant))
 
 
 # ---------------------------------------------------------------------------
 # Données de démonstration (pour tester sans internet)
 # ---------------------------------------------------------------------------
-def charger_demo(graine: int = 20):
+def demo_brut(graine: int = 20, jours: int = 60):
     rng = np.random.default_rng(graine)
-    n = 60 * 96                                   # 60 jours de bougies 15 min
+    n = jours * 96                                # bougies 15 min
     regimes = np.repeat(rng.choice([-1, 1], size=n // 300 + 1) *
                         rng.uniform(0.00005, 0.00018, size=n // 300 + 1), 300)[:n]
     bruit = rng.normal(0, 0.0012, n)
@@ -83,15 +165,11 @@ def charger_demo(graine: int = 20):
     fin = pd.Timestamp.now(tz="Europe/Paris").floor("15min")
     idx = pd.date_range(end=fin, periods=n, freq="15min")
     m15 = pd.DataFrame({"Open": open_, "High": high, "Low": low, "Close": close}, index=idx)
-
-    # Argent corrélé (pour la SMT)
-    ag = m15.copy() * (31 / 2650)
+    ag = m15.copy() * (31 / 2650)                 # argent corrélé (pour la SMT)
     ag = ag * (1 + np.cumsum(rng.normal(0, 0.0004, n)))[:, None]
+    return regrouper(m15, "1h"), m15, regrouper(ag, "1h")
 
-    return {
-        "htf": regrouper(m15, "4h"),
-        "mtf": regrouper(m15, "1h"),
-        "ltf": m15,
-        "d1": regrouper(m15, "1D"),
-        "smt": regrouper(ag, "1h"),
-    }
+
+def charger_demo(graine: int = 20, maintenant=None):
+    h1, m15, ag = demo_brut(graine)
+    return construire(h1, m15, ag, maintenant)

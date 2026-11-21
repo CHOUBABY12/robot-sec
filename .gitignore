@@ -1,4 +1,5 @@
 rapports/*
-!rapports/derniere_alerte.txt
-__pycache__/
+!rapports/journal.json
 !rapports/dernier_resume.txt
+!rapports/dernier_bilan.txt
+__pycache__/

@@ -36,9 +36,10 @@ jobs:
         # GitHub retarde souvent les tâches programmées : le robot reste donc
         # allumé ~5h40 par session et analyse lui-même toutes les 15 minutes.
         run: timeout 20400 python robot.py --boucle 15 --sans-graphique || true
-      - name: Mémoriser la dernière alerte (évite les doublons)
+      - name: Sauvegarder le journal des trades et la mémoire des alertes
+        if: always()
         run: |
           git config user.name "robot-smc"
           git config user.email "robot-smc@users.noreply.github.com"
-          for f in rapports/derniere_alerte.txt rapports/dernier_resume.txt; do [ -f "$f" ] && git add -f "$f"; done; true
-          git diff --cached --quiet || (git commit -m "Mémoire des alertes" && git pull --rebase -q && git push)
+          for f in rapports/journal.json rapports/dernier_resume.txt rapports/dernier_bilan.txt; do [ -f "$f" ] && git add -f "$f"; done; true
+          git diff --cached --quiet || (git commit -m "Journal des trades" && git pull --rebase -q && git push)

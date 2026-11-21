@@ -51,16 +51,22 @@ def key_levels(d1: pd.DataFrame, ltf: pd.DataFrame, prix: float):
 
 
 def session_actuelle(maintenant=None):
-    h = (maintenant or datetime.now(timezone.utc)).astimezone(timezone.utc).hour
+    m = maintenant if maintenant is not None else datetime.now(timezone.utc)
+    if hasattr(m, "to_pydatetime"):
+        m = m.to_pydatetime()
+    h = m.astimezone(timezone.utc).hour
     actives = [nom for nom, (a, b) in C.SESSIONS_UTC.items() if a <= h < b]
     return actives
 
 
-def crt(df: pd.DataFrame, nom_ut: str):
+def crt(df: pd.DataFrame, nom_ut: str, en_cours: bool = True):
     """Candle Range Theory sur les 2 dernières bougies clôturées."""
     if len(df) < 3:
         return None
-    b1, b2 = df.iloc[-3], df.iloc[-2]          # la dernière (-1) est en cours
+    if en_cours:                               # la dernière (-1) est encore en cours
+        b1, b2 = df.iloc[-3], df.iloc[-2]
+    else:                                      # toutes les bougies sont fermées
+        b1, b2 = df.iloc[-2], df.iloc[-1]
     if b2["High"] > b1["High"] and b1["Low"] < b2["Close"] < b1["High"]:
         return {"sens": -1, "ut": nom_ut, "cible": float(b1["Low"]),
                 "texte": f"CRT baissier {nom_ut} : la bougie a balayé le haut "

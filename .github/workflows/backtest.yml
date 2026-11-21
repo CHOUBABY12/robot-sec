@@ -1,0 +1,35 @@
+name: Backtest (tester le robot sur le passé)
+
+on:
+  workflow_dispatch:   # bouton « Run workflow »
+    inputs:
+      note:
+        description: "Note minimum des setups testés"
+        type: choice
+        options: ["A", "A+", "B"]
+        default: "A"
+      pas:
+        description: "Bougies 15m entre deux analyses (4 = toutes les heures, 2 = toutes les 30 min)"
+        default: "4"
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Backtest sur ~2 mois d'or
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python backtest.py --note "${{ inputs.note }}" --pas "${{ inputs.pas }}" --telegram
+      - name: Fichier du détail des trades (à télécharger en bas de la page)
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultats-backtest
+          path: rapports/backtest.csv

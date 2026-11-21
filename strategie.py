@@ -146,6 +146,7 @@ def cibles(sens, entree, A, liqs, key, jambe_ref, crt_list):
 
 
 def construire_entree(nom, sens, entree, stop, liste_cibles, explication):
+    stop = stop - sens * C.SPREAD          # le spread peut déclencher le stop plus tôt
     risque = abs(entree - stop)
     if risque <= 0:
         return None
@@ -168,7 +169,8 @@ def construire_entree(nom, sens, entree, stop, liste_cibles, explication):
 # ---------------------------------------------------------------------------
 # Analyse globale
 # ---------------------------------------------------------------------------
-def analyser(donnees):
+def analyser(donnees, maintenant=None):
+    maintenant = maintenant or donnees.get("maintenant")
     htf = analyser_ut(donnees["htf"], C.UT_HTF)
     mtf = analyser_ut(donnees["mtf"], C.UT_MTF)
     ltf = analyser_ut(donnees["ltf"], C.UT_LTF)
@@ -208,9 +210,10 @@ def analyser(donnees):
             derniere_liq = min(cands, key=lambda h: abs(h["prix"] - (poi["haut"] if sens == 1 else poi["bas"])))
 
     # 5. Outils de marché
-    crt_list = [OT.crt(d1, "D1"), OT.crt(htf["df"], C.UT_HTF)]
+    # D1 : la dernière bougie est en cours ; 4h : uniquement des bougies fermées
+    crt_list = [OT.crt(d1, "D1"), OT.crt(htf["df"], C.UT_HTF, en_cours=False)]
     smt = OT.smt(df, donnees.get("smt"))
-    sessions = OT.session_actuelle()
+    sessions = OT.session_actuelle(maintenant)
 
     # 6. Confirmation LTF + raffinement
     confirmation, raffinee = None, None
@@ -344,4 +347,5 @@ def analyser(donnees):
         "crt": [c for c in crt_list if c], "smt": smt, "sessions": sessions,
         "confirmation": confirmation, "raffinee": raffinee, "entrees": entrees,
         "check": check, "score": score, "note": note, "statut": statut,
+        "maintenant": maintenant,
     }
