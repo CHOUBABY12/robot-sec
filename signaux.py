@@ -25,6 +25,7 @@ import pandas as pd         # noqa: E402
 import config as C          # noqa: E402
 import donnees as D         # noqa: E402
 import historique as H      # noqa: E402
+import journal as J         # noqa: E402
 import strategie as ST      # noqa: E402
 
 # Ordre fixe des lignes de la checklist (voir strategie.analyser, étape 8)
@@ -61,7 +62,7 @@ def signal(res, T):
         "check": [[k, bool(ok), int(pts)] for k, (ok, _, pts) in zip(CLES_CHECK, res["check"])],
         "sessions": res["sessions"], "prix": round(res["prix"], 6),
         "atr_ltf": round(res["ltf"]["atr_der"], 6),
-        "cle": f"{res['sens']}|{round(res['poi']['bas'])}|{round(res['poi']['haut'])}",
+        "cle": J.cle_setup(res),          # même clé anti-doublon que le robot en direct
         "poi": res["poi"]["genre"], "poi_score": res["poi"]["score"],
         "confirmation": res["confirmation"]["type"] if res["confirmation"] else None,
         "entrees": [{"nom": e["nom"].split(" (")[0], "entree": round(e["entree"], 6),

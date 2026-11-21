@@ -58,7 +58,8 @@ def cle_setup(r):
     """Un setup = un sens + un POI (même si la note passe de A à A+)."""
     p = r["poi"]
     d = C.DECIMALES - 2 if C.DECIMALES > 2 else 0     # POI arrondi à ~1/100 de l'échelle
-    cle = f"{r['sens']}|{round(p['bas'], d)}|{round(p['haut'], d)}"
+    arr = (lambda x: round(x, d)) if d else round
+    cle = f"{r['sens']}|{arr(p['bas'])}|{arr(p['haut'])}"
     return cle if C.MARCHE == "XAUUSD" else f"{C.MARCHE}|{cle}"
 
 
