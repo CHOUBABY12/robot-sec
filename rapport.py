@@ -29,7 +29,8 @@ def afficher(r, demo=False):
     print("\n" + "═" * L)
     print(f"  🤖 ROBOT SMC — {C.NOM_MARCHE}   {datetime.now():%d/%m/%Y %H:%M}" + ("  [DÉMO]" if demo else ""))
     print("═" * L)
-    if C.ECART_MT5:
+    print(f"  Source des prix : {C.SOURCE_PRIX}")
+    if C.ECART_MT5 and C.SOURCE_PRIX.startswith("Yahoo"):
         print(f"  (prix corrigés pour MT5 : écart de {C.ECART_MT5:g} $ retiré)")
     print(f"  Prix : {_p(r['prix'])} $    ATR {C.UT_MTF} : {r['mtf']['atr_der']:.2f} $")
     print(f"  Biais : {icone[r['biais']]}    Note du setup : {r['note']}   (confluence {r['score']}/100)")
@@ -321,9 +322,13 @@ def message_alerte(r, e=None, ordre=None, annonces=None):
         lignes += ["", "📰 Annonce forte USD bientôt : " + ", ".join(
             f"{a['titre']} ({N.heure_paris(a['date'])})" for a in proch[:3])
             + " → prudence, réduis le risque ou attends après."]
-    lignes += ["", "⚠️ Compte DÉMO. Vérifie sur MT5 avant d'entrer"
-               + (" (prix déjà corrigés de l'écart MT5)." if C.ECART_MT5 else
-                  " (léger écart de prix possible : règle ECART_MT5 dans config.py).")]
+    if C.SOURCE_PRIX.startswith("Twelve"):
+        note_prix = " (prix spot en temps réel)."
+    elif C.ECART_MT5:
+        note_prix = " (prix Yahoo corrigés de l'écart MT5, ~15 min de retard)."
+    else:
+        note_prix = " (prix Yahoo : léger écart possible et ~15 min de retard)."
+    lignes += ["", "⚠️ Compte DÉMO. Vérifie sur MT5 avant d'entrer" + note_prix]
     return "\n".join(lignes)
 
 

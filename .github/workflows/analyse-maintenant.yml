@@ -17,4 +17,6 @@ jobs:
       - name: Annonces économiques de la semaine
         run: python robot.py --test-news
       - name: Analyse de l'or
+        env:
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
         run: python robot.py --sans-graphique

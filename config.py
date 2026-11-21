@@ -51,7 +51,11 @@ SESSIONS_UTC = {
 }
 
 # --- Alignement avec ton MetaTrader 5 ----------------------------------------
+# Source des prix en direct : Twelve Data (spot, temps réel) si le secret GitHub
+# TWELVEDATA_API_KEY existe, sinon Yahoo Finance (contrat à terme, ~15 min de retard).
+SOURCE_PRIX = "?"
 # Écart de prix : (prix affiché par le robot) - (prix XAU/USD sur ton MT5).
+# ⚠️ Ne s'applique qu'à Yahoo (contrat à terme). Avec Twelve Data (spot), pas besoin.
 # Exemple : le robot affiche 2 660 et MT5 2 645 → ECART_MT5 = 15.
 # Tous les niveaux (entrée, stop, TP) sont alors donnés directement au prix MT5.
 # Vérifie-le de temps en temps (il change surtout quand le contrat à terme change).

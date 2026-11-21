@@ -31,6 +31,7 @@ jobs:
         run: python robot.py --test-telegram
       - name: Analyse de l'or + alerte Telegram
         env:
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         # GitHub retarde souvent les tâches programmées : le robot reste donc

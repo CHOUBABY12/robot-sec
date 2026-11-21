@@ -120,9 +120,57 @@ def _corriger_ecart(df):
     return df - C.ECART_MT5
 
 
+# ---------------------------------------------------------------------------
+# Twelve Data : prix spot en temps réel (clé gratuite sur twelvedata.com)
+# ---------------------------------------------------------------------------
+TD_INTERVALLES = {"15m": "15min", "1h": "1h", "5m": "5min", "30m": "30min"}
+
+
+def _twelvedata(symbole, ut, cle, nb=5000):
+    import json
+    import urllib.parse
+    import urllib.request
+    q = urllib.parse.urlencode({"symbol": symbole, "interval": TD_INTERVALLES[ut], "outputsize": nb,
+                                "timezone": "UTC", "order": "ASC", "apikey": cle})
+    rep = json.loads(urllib.request.urlopen(f"https://api.twelvedata.com/time_series?{q}",
+                                            timeout=20).read().decode("utf-8"))
+    return _td_vers_df(rep)
+
+
+def _td_vers_df(rep):
+    if rep.get("status") != "ok" or not rep.get("values"):
+        raise RuntimeError(rep.get("message", "réponse vide"))
+    df = pd.DataFrame(rep["values"])
+    df.index = pd.DatetimeIndex(pd.to_datetime(df["datetime"], utc=True)).tz_convert("Europe/Paris")
+    df = df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
+    return df[["Open", "High", "Low", "Close"]].astype(float).sort_index()
+
+
+def charger_twelvedata(cle):
+    h1 = _twelvedata("XAU/USD", "1h", cle)
+    ltf = _twelvedata("XAU/USD", C.UT_LTF, cle)
+    try:
+        ag = _twelvedata("XAG/USD", "1h", cle)
+    except Exception:
+        ag = None
+    return h1, ltf, ag
+
+
 def charger_brut():
     """Télécharge les données brutes : or 1h, or LTF, argent 1h."""
-    print("⏳ Téléchargement des données…")
+    import os
+    cle = os.environ.get("TWELVEDATA_API_KEY", "")
+    if cle:
+        print("⏳ Téléchargement des données (Twelve Data, temps réel)…")
+        try:
+            h1, ltf, ag = charger_twelvedata(cle)
+            C.SOURCE_PRIX = "Twelve Data (spot, temps réel)"
+            _taux_eurusd()
+            return h1, ltf, ag
+        except Exception as ex:
+            print(f"  ⚠️ Twelve Data indisponible ({ex}) → Yahoo Finance en secours.")
+    print("⏳ Téléchargement des données (Yahoo Finance, ~15 min de retard)…")
+    C.SOURCE_PRIX = "Yahoo Finance (contrat à terme, ~15 min de retard)"
     h1 = _corriger_ecart(_yahoo(C.SYMBOLE, "1h", PERIODES["1h"]))
     ltf = _corriger_ecart(_yahoo(C.SYMBOLE, C.UT_LTF, PERIODES.get(C.UT_LTF, "59d")))
     if h1 is None or ltf is None:
@@ -132,13 +180,17 @@ def charger_brut():
         ag = _yahoo(C.SYMBOLE_SMT, "1h", PERIODES["1h"])   # facultatif
     except Exception:
         ag = None
+    _taux_eurusd()
+    return h1, ltf, ag
+
+
+def _taux_eurusd():
     try:
         fx = _yahoo("EURUSD=X", "1d", "5d")
         if fx is not None and len(fx):
             C.TAUX_EURUSD = float(fx["Close"].iloc[-1])
     except Exception:
         pass
-    return h1, ltf, ag
 
 
 def charger_tout(maintenant=None):
@@ -171,5 +223,6 @@ def demo_brut(graine: int = 20, jours: int = 60):
 
 
 def charger_demo(graine: int = 20, maintenant=None):
+    C.SOURCE_PRIX = "données fictives (démo)"
     h1, m15, ag = demo_brut(graine)
     return construire(h1, m15, ag, maintenant)

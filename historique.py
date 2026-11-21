@@ -49,7 +49,10 @@ def lire(instrument, tf):
     df = pd.read_csv(f)
     df.index = _index(df["timestamp"])
     df = df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
-    return df[["Open", "High", "Low", "Close"]].sort_index()
+    df = df[["Open", "High", "Low", "Close"]].sort_index()
+    # Dukascopy remplit les week-ends et la pause quotidienne avec des bougies « plates »
+    # (ouverture = plus haut = plus bas = clôture) : on les retire, elles fausseraient l'ATR.
+    return df[df["High"] > df["Low"]]
 
 
 def _ecrire(instrument, tf, df):
