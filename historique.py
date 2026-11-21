@@ -66,8 +66,8 @@ def lire(instrument, tf):
 def _ecrire(instrument, tf, df):
     os.makedirs(DOSSIER, exist_ok=True)
     out = pd.DataFrame({"timestamp": df.index.tz_convert("UTC").as_unit("ms").asi8,
-                        "open": df["Open"].round(3), "high": df["High"].round(3),
-                        "low": df["Low"].round(3), "close": df["Close"].round(3)})
+                        "open": df["Open"].round(6), "high": df["High"].round(6),
+                        "low": df["Low"].round(6), "close": df["Close"].round(6)})
     out.to_csv(chemin(instrument, tf), index=False, compression="gzip")
 
 
