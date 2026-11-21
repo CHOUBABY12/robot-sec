@@ -3,3 +3,4 @@ rapports/*
 !rapports/dernier_resume.txt
 !rapports/dernier_bilan.txt
 __pycache__/
+signaux/

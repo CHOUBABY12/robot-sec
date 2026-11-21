@@ -32,20 +32,29 @@ def chemin(instrument, tf):
     return os.path.join(DOSSIER, SERIES[(instrument, tf)])
 
 
+def _index(col):
+    """Colonne timestamp (millisecondes ou texte) → DatetimeIndex en heure de Paris."""
+    if pd.api.types.is_numeric_dtype(col):
+        idx = pd.to_datetime(col.to_numpy(), unit="ms", utc=True)
+    else:
+        idx = pd.to_datetime(col.to_numpy(), utc=True)
+    return pd.DatetimeIndex(idx).tz_convert("Europe/Paris")
+
+
 def lire(instrument, tf):
     """DataFrame Open/High/Low/Close, index en heure de Paris (ou None)."""
     f = chemin(instrument, tf)
     if not os.path.exists(f):
         return None
     df = pd.read_csv(f)
-    df.index = pd.to_datetime(df["timestamp"], unit="ms", utc=True).tz_convert("Europe/Paris")
+    df.index = _index(df["timestamp"])
     df = df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
     return df[["Open", "High", "Low", "Close"]].sort_index()
 
 
 def _ecrire(instrument, tf, df):
     os.makedirs(DOSSIER, exist_ok=True)
-    out = pd.DataFrame({"timestamp": (df.index.tz_convert("UTC").astype("int64") // 10**6),
+    out = pd.DataFrame({"timestamp": df.index.tz_convert("UTC").as_unit("ms").asi8,
                         "open": df["Open"].round(3), "high": df["High"].round(3),
                         "low": df["Low"].round(3), "close": df["Close"].round(3)})
     out.to_csv(chemin(instrument, tf), index=False, compression="gzip")
@@ -81,7 +90,7 @@ def telecharger(instrument, tf, debut, fin="now"):
             morceaux.append(raw)
             a = b
     raw = pd.concat(morceaux)
-    raw.index = pd.to_datetime(raw["timestamp"], unit="ms", utc=True).tz_convert("Europe/Paris")
+    raw.index = _index(raw["timestamp"])
     raw = raw.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
     nouveau = raw[["Open", "High", "Low", "Close"]]
     ancien = lire(instrument, tf)

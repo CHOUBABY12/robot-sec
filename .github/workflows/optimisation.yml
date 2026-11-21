@@ -1,0 +1,65 @@
+name: Optimisation (comparer les réglages sur plusieurs années)
+
+on:
+  workflow_dispatch:   # bouton « Run workflow »
+    inputs:
+      coupure:
+        description: "Début de la période de vérification (jamais vue par le classement)"
+        default: "2025-01-01"
+
+permissions:
+  contents: write
+
+jobs:
+  signaux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        annee: [2021, 2022, 2023, 2024, 2025, 2026]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Analyse du robot sur l'année ${{ matrix.annee }}
+        run: python signaux.py --annee ${{ matrix.annee }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signaux-${{ matrix.annee }}
+          path: signaux/signaux_${{ matrix.annee }}.json.gz
+
+  comparer:
+    needs: signaux
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: signaux-*
+          merge-multiple: true
+          path: signaux
+      - name: Comparaison des réglages + poids de la checklist
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python comparer.py --coupure "${{ inputs.coupure }}" --telegram
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rapport-optimisation
+          path: rapports/optimisation.*
+      - name: Enregistrer le rapport dans le dépôt
+        run: |
+          git config user.name "robot-smc"
+          git config user.email "robot-smc@users.noreply.github.com"
+          git add -f rapports/optimisation.md rapports/optimisation.json
+          git diff --cached --quiet || (git commit -m "Rapport d'optimisation" && git pull --rebase -q && git push)
