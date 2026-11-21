@@ -59,13 +59,13 @@ def signal(res, T):
     return {
         "t": T.isoformat(), "sens": res["sens"], "note": res["note"], "score": res["score"],
         "check": [[k, bool(ok), int(pts)] for k, (ok, _, pts) in zip(CLES_CHECK, res["check"])],
-        "sessions": res["sessions"], "prix": round(res["prix"], 3),
-        "atr_ltf": round(res["ltf"]["atr_der"], 3),
+        "sessions": res["sessions"], "prix": round(res["prix"], 6),
+        "atr_ltf": round(res["ltf"]["atr_der"], 6),
         "cle": f"{res['sens']}|{round(res['poi']['bas'])}|{round(res['poi']['haut'])}",
         "poi": res["poi"]["genre"], "poi_score": res["poi"]["score"],
         "confirmation": res["confirmation"]["type"] if res["confirmation"] else None,
-        "entrees": [{"nom": e["nom"].split(" (")[0], "entree": round(e["entree"], 3),
-                     "stop": round(e["stop"], 3), "tps": [round(p, 3) for p, _ in e["tps"]],
+        "entrees": [{"nom": e["nom"].split(" (")[0], "entree": round(e["entree"], 6),
+                     "stop": round(e["stop"], 6), "tps": [round(p, 6) for p, _ in e["tps"]],
                      "rr": [round(x, 3) for x in e["rr"]], "valide": e["valide"]}
                     for e in res["entrees"]],
     }
