@@ -1,0 +1,46 @@
+name: Données historiques (Dukascopy)
+
+on:
+  workflow_dispatch:   # bouton « Run workflow »
+    inputs:
+      action:
+        description: "telecharger = tout depuis la date de début, mettre-a-jour = jours manquants"
+        type: choice
+        options: ["mettre-a-jour", "telecharger"]
+        default: "mettre-a-jour"
+      debut:
+        description: "Date de début (pour telecharger)"
+        default: "2021-01-01"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: donnees-historiques
+  cancel-in-progress: false
+
+jobs:
+  telecharger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Navigateur pour Dukascopy (protection anti-robots)
+        run: npx --yes dukascopy-node --install-browser || true
+      - name: Téléchargement
+        run: python historique.py "${{ inputs.action }}" --debut "${{ inputs.debut }}"
+      - run: python historique.py info
+      - name: Enregistrer les données dans le dépôt
+        run: |
+          git config user.name "robot-smc"
+          git config user.email "robot-smc@users.noreply.github.com"
+          git add -f data/*.csv.gz
+          git diff --cached --quiet || (git commit -m "Historique Dukascopy" && git pull --rebase -q && git push)
