@@ -64,6 +64,8 @@ def setup_a_alerter(r, journal, maintenant):
     ordre_notes = ["C", "B", "A", "A+"]
     if not r["poi"] or ordre_notes.index(r["note"]) < ordre_notes.index(C.NOTE_MINI_ALERTE):
         return None
+    if any(s in C.SESSIONS_SANS_ALERTE for s in r["sessions"]):
+        return None
     e = R.choisir_entree(r)
     if e is None:
         return None

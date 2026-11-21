@@ -39,7 +39,8 @@ ENTREES = {"auto": None, "confirmation": "Entrée sur confirmation", "50 %": "En
 PRIORITE = ["Entrée sur confirmation", "Entrée raffinée", "Entrée au 50 %", "Entrée agressive"]
 SESSIONS = ["toutes", "killzones", "hors Asie"]
 VALIDITES = [4, 8, 12]
-REFERENCE = {"note": "A", "entree": "auto", "sessions": "toutes", "gestion": "BE au TP1", "validite": 4}
+# réglage actuel du robot en direct (après l'optimisation de novembre 2026)
+REFERENCE = {"note": "A", "entree": "auto", "sessions": "hors Asie", "gestion": "BE au TP1", "validite": 8}
 H_NS = 3600 * 10**9
 
 

@@ -83,9 +83,31 @@ Ouvre `config.py` avec TextEdit ou VS Code pour changer : les unités de temps, 
   minimum (A, A+ ou B). Le résumé arrive sur Telegram et le détail se télécharge en bas de la page
   (`resultats-backtest`). Limite : Yahoo ne donne que ~2 mois de bougies 15 min.
 
-## 7. Réglages à faire une fois
+## 7. Optimisation sur plusieurs années
 
-- **`ECART_MT5`** : compare le prix d'une alerte avec le prix XAU/USD de ton MT5 au même moment.
+1. **Données** : Actions → **Données historiques (Dukascopy)** → Run workflow (`mettre-a-jour`
+   ajoute les jours manquants). 5 ans d'or spot en 15 min sont dans le dossier `data/`.
+2. **Optimisation** : Actions → **Optimisation** → Run workflow. Le robot analyse chaque année en
+   parallèle (~15 min), puis 675 réglages sont comparés. Ils sont classés sur 2021-2024
+   (apprentissage) puis vérifiés sur 2025-2026 (vérification, jamais vue par le classement).
+   Le rapport est dans `rapports/optimisation.md` et un résumé arrive sur Telegram.
+3. **Comparer à nouveau** : pour tester d'autres réglages sans recalculer les signaux.
+
+⚠️ Le backtest ne compte ni le glissement (slippage) ni les commissions (seul le spread est
+ajouté au stop) : les vrais résultats seront un peu moins bons.
+
+## 8. Prix en temps réel (Twelve Data, gratuit)
+
+1. Crée un compte gratuit sur https://twelvedata.com (plan Basic, sans carte bancaire).
+2. Copie ta clé API (Dashboard → API Keys).
+3. Sur GitHub : ton dépôt → **Settings** → **Secrets and variables** → **Actions** →
+   **New repository secret**. Nom : `TWELVEDATA_API_KEY`, valeur : ta clé.
+4. C'est tout : le robot utilise alors le prix spot sans retard (Yahoo reste en secours).
+   Avec Twelve Data, laisse `ECART_MT5 = 0`.
+
+## 9. Réglages à faire une fois
+
+- **`ECART_MT5`** (seulement sans Twelve Data) : compare le prix d'une alerte avec le prix XAU/USD de ton MT5 au même moment.
   Si le robot dit 2 660 et MT5 2 645, mets `ECART_MT5 = 15`. Tous les niveaux seront alors au prix MT5.
 - **`FUSEAU_SERVEUR_MT5`** : heure serveur de ton broker (par défaut GMT+2/+3 = `"Europe/Athens"`),
   pour que les bougies 4h et journalières soient les mêmes que sur ton MT5.
@@ -93,7 +115,7 @@ Ouvre `config.py` avec TextEdit ou VS Code pour changer : les unités de temps, 
 - **Annonces** : pas d'alerte 30 min avant / après une annonce forte USD (NFP, CPI, FOMC…).
   Les annonces du jour sont listées dans le point du matin.
 
-## 8. Bon à savoir
+## 10. Bon à savoir
 
 - Le robot n'analyse que les bougies **fermées** : un BOS/CHoCH n'est validé qu'à la clôture.
 

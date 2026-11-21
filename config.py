@@ -40,7 +40,7 @@ RR_MINIMUM = 2.0          # ratio gain/risque minimum pour valider un setup
 # --- Devise du compte MT5 ---------------------------------------------------
 DEVISE_COMPTE = "EUR"     # "EUR" ou "USD"
 TAUX_EURUSD = 1.08        # mis à jour automatiquement à chaque analyse
-VALIDITE_ORDRE_H = 4      # durée de validité conseillée d'un ordre limite (heures)
+VALIDITE_ORDRE_H = 8      # durée de validité d'un ordre limite (heures) — 8h retenu par l'optimisation
 
 # --- Sessions / killzones (heures UTC) ---------------------------------------
 SESSIONS_UTC = {
@@ -83,3 +83,6 @@ ANTI_DOUBLON_H = 12          # pas de 2e alerte sur le même POI pendant 12 h
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")   # secret GitHub
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")  # secret GitHub
 NOTE_MINI_ALERTE = "A"    # alerte seulement pour les setups A ou A+
+# Pas d'alerte pendant ces sessions (optimisation sur 2021-2026 : la session
+# asiatique fait baisser les résultats). Mets [] pour tout recevoir.
+SESSIONS_SANS_ALERTE = ["Asie"]
