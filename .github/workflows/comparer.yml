@@ -6,6 +6,9 @@ on:
       run_id:
         description: "Numéro d'une exécution « Optimisation » dont on réutilise les signaux"
         required: true
+      marche:
+        description: "Marché (XAUUSD, XAGUSD, EURUSD, GBPUSD, NAS100)"
+        default: "XAUUSD"
       coupure:
         description: "Début de la période de vérification"
         default: "2025-01-01"
@@ -36,10 +39,10 @@ jobs:
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
       - name: Comparaison
-        run: python comparer.py --coupure "${{ inputs.coupure }}" --candidat "${{ inputs.candidat }}"
+        run: python comparer.py --marche "${{ inputs.marche }}" --coupure "${{ inputs.coupure }}" --candidat "${{ inputs.candidat }}"
       - name: Enregistrer le rapport
         run: |
           git config user.name "robot-smc"
           git config user.email "robot-smc@users.noreply.github.com"
-          git add -f rapports/optimisation.md rapports/optimisation.json
+          git add -f rapports/optimisation_*.md rapports/optimisation_*.json
           git diff --cached --quiet || (git commit -m "Rapport d'optimisation" && git pull --rebase -q && git push)

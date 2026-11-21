@@ -44,9 +44,9 @@ def key_levels(d1: pd.DataFrame, ltf: pd.DataFrame, prix: float):
                     ("Bas session Asie", asie["Low"].min())]
 
     # Nombres ronds
-    base50 = math.floor(prix / 50) * 50
-    for r in (base50, base50 + 50):
-        niveaux.append((f"Nombre rond {int(r)}", r))
+    base = math.floor(prix / C.ROND) * C.ROND
+    for r in (base, base + C.ROND):
+        niveaux.append((f"Nombre rond {C.prix_txt(r).rstrip('0').rstrip('.')}", r))
     return [(nom, float(v)) for nom, v in niveaux]
 
 
@@ -70,11 +70,11 @@ def crt(df: pd.DataFrame, nom_ut: str, en_cours: bool = True):
     if b2["High"] > b1["High"] and b1["Low"] < b2["Close"] < b1["High"]:
         return {"sens": -1, "ut": nom_ut, "cible": float(b1["Low"]),
                 "texte": f"CRT baissier {nom_ut} : la bougie a balayé le haut "
-                         f"{b1['High']:.2f} puis est revenue dans le range → cible {b1['Low']:.2f}"}
+                         f"{C.prix_txt(b1['High'])} puis est revenue dans le range → cible {C.prix_txt(b1['Low'])}"}
     if b2["Low"] < b1["Low"] and b1["Low"] < b2["Close"] < b1["High"]:
         return {"sens": 1, "ut": nom_ut, "cible": float(b1["High"]),
                 "texte": f"CRT haussier {nom_ut} : la bougie a balayé le bas "
-                         f"{b1['Low']:.2f} puis est revenue dans le range → cible {b1['High']:.2f}"}
+                         f"{C.prix_txt(b1['Low'])} puis est revenue dans le range → cible {C.prix_txt(b1['High'])}"}
     return None
 
 

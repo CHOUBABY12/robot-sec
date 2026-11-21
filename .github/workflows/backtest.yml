@@ -3,6 +3,11 @@ name: Backtest (tester le robot sur le passé)
 on:
   workflow_dispatch:   # bouton « Run workflow »
     inputs:
+      marche:
+        description: "Marché"
+        type: choice
+        options: ["XAUUSD", "XAGUSD", "EURUSD", "GBPUSD", "NAS100"]
+        default: "XAUUSD"
       note:
         description: "Note minimum des setups testés"
         type: choice
@@ -23,13 +28,13 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - name: Backtest sur ~2 mois d'or
+      - name: Backtest sur ~2 mois
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python backtest.py --note "${{ inputs.note }}" --pas "${{ inputs.pas }}" --telegram
+        run: python backtest.py --marche "${{ inputs.marche }}" --note "${{ inputs.note }}" --pas "${{ inputs.pas }}" --telegram
       - name: Fichier du détail des trades (à télécharger en bas de la page)
         uses: actions/upload-artifact@v4
         with:
           name: resultats-backtest
-          path: rapports/backtest.csv
+          path: rapports/backtest_*.csv

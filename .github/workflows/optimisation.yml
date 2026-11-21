@@ -3,6 +3,9 @@ name: Optimisation (comparer les réglages sur plusieurs années)
 on:
   workflow_dispatch:   # bouton « Run workflow »
     inputs:
+      marches:
+        description: "Marchés à tester (séparés par des virgules)"
+        default: "XAUUSD,XAGUSD,EURUSD,GBPUSD,NAS100"
       coupure:
         description: "Début de la période de vérification (jamais vue par le classement)"
         default: "2025-01-01"
@@ -11,12 +14,22 @@ permissions:
   contents: write
 
 jobs:
+  preparer:
+    runs-on: ubuntu-latest
+    outputs:
+      marches: ${{ steps.m.outputs.marches }}
+    steps:
+      - id: m
+        run: echo "marches=$(echo '${{ inputs.marches }}' | python3 -c 'import sys,json; print(json.dumps([x.strip() for x in sys.stdin.read().split(",") if x.strip()]))')" >> "$GITHUB_OUTPUT"
+
   signaux:
+    needs: preparer
     runs-on: ubuntu-latest
     timeout-minutes: 300
     strategy:
       fail-fast: false
       matrix:
+        marche: ${{ fromJSON(needs.preparer.outputs.marches) }}
         annee: [2021, 2022, 2023, 2024, 2025, 2026]
     steps:
       - uses: actions/checkout@v4
@@ -25,15 +38,16 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - name: Analyse du robot sur l'année ${{ matrix.annee }}
-        run: python signaux.py --annee ${{ matrix.annee }}
+      - name: Analyse du robot — ${{ matrix.marche }} ${{ matrix.annee }}
+        run: python signaux.py --marche ${{ matrix.marche }} --annee ${{ matrix.annee }}
       - uses: actions/upload-artifact@v4
         with:
-          name: signaux-${{ matrix.annee }}
-          path: signaux/signaux_${{ matrix.annee }}.json.gz
+          name: signaux-${{ matrix.marche }}-${{ matrix.annee }}
+          path: signaux/signaux_${{ matrix.marche }}_${{ matrix.annee }}.json.gz
 
   comparer:
-    needs: signaux
+    needs: [preparer, signaux]
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -48,18 +62,21 @@ jobs:
           pattern: signaux-*
           merge-multiple: true
           path: signaux
-      - name: Comparaison des réglages + poids de la checklist
+      - name: Comparaison des réglages, marché par marché
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python comparer.py --coupure "${{ inputs.coupure }}" --telegram
+        run: |
+          for m in $(echo "${{ inputs.marches }}" | tr ',' ' '); do
+            python comparer.py --marche "$m" --coupure "${{ inputs.coupure }}" --telegram || echo "⚠️ $m : comparaison impossible"
+          done
       - uses: actions/upload-artifact@v4
         with:
-          name: rapport-optimisation
-          path: rapports/optimisation.*
-      - name: Enregistrer le rapport dans le dépôt
+          name: rapports-optimisation
+          path: rapports/optimisation_*
+      - name: Enregistrer les rapports dans le dépôt
         run: |
           git config user.name "robot-smc"
           git config user.email "robot-smc@users.noreply.github.com"
-          git add -f rapports/optimisation.md rapports/optimisation.json
-          git diff --cached --quiet || (git commit -m "Rapport d'optimisation" && git pull --rebase -q && git push)
+          git add -f rapports/optimisation_*.md rapports/optimisation_*.json
+          git diff --cached --quiet || (git commit -m "Rapports d'optimisation" && git pull --rebase -q && git push)

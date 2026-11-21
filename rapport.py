@@ -13,7 +13,7 @@ L = 66
 
 
 def _p(x):
-    return f"{x:,.2f}".replace(",", " ")
+    return f"{x:,.{C.DECIMALES}f}".replace(",", " ")
 
 
 def _dev():
@@ -32,7 +32,7 @@ def afficher(r, demo=False):
     print(f"  Source des prix : {C.SOURCE_PRIX}")
     if C.ECART_MT5 and C.SOURCE_PRIX.startswith("Yahoo"):
         print(f"  (prix corrigés pour MT5 : écart de {C.ECART_MT5:g} $ retiré)")
-    print(f"  Prix : {_p(r['prix'])} $    ATR {C.UT_MTF} : {r['mtf']['atr_der']:.2f} $")
+    print(f"  Prix : {_p(r['prix'])}    ATR {C.UT_MTF} : {_p(r['mtf']['atr_der'])}")
     print(f"  Biais : {icone[r['biais']]}    Note du setup : {r['note']}   (confluence {r['score']}/100)")
     print(f"  ➜ {r['statut']}")
 
@@ -128,7 +128,7 @@ def afficher(r, demo=False):
         flag = "✅" if e["valide"] else "⚠️ ratio insuffisant"
         print(f"\n  ▸ {e['nom']}  {flag}")
         print(f"    {'ACHAT' if r['sens'] == 1 else 'VENTE'} à {_p(e['entree'])} | Stop {_p(e['stop'])}"
-              f" (risque {abs(e['entree'] - e['stop']):.2f} $)")
+              f" (risque {_p(abs(e['entree'] - e['stop']))})")
         for k, ((p, n), rr) in enumerate(zip(e["tps"], e["rr"]), 1):
             print(f"    TP{k} {_p(p)}  (1:{rr:.1f})  ← {n}")
         if e["lots"] >= 0.01:
@@ -246,7 +246,7 @@ def graphique(r, ut="mtf", dossier="rapports", nb=160):
     sens = "HAUSSIER" if r["sens"] == 1 else "BAISSIER"
     ax.set_title(f"{C.NOM_MARCHE} — {a['nom']} — biais {sens} — note {r['note']} ({r['score']}/100)",
                  fontsize=11, weight="bold")
-    fichier = os.path.join(dossier, f"analyse_{a['nom']}.png")
+    fichier = os.path.join(dossier, f"analyse_{C.MARCHE}_{a['nom']}.png")
     fig.tight_layout()
     fig.savefig(fichier, dpi=130)
     plt.close(fig)
@@ -284,6 +284,7 @@ def message_alerte(r, e=None, ordre=None, annonces=None):
         return None
     s = r["sens"]
     ordre = ordre or type_ordre(s, e["entree"], r["prix"], r["ltf"]["atr_der"])
+    P = C.prix_txt
     risque_pts = abs(e["entree"] - e["stop"])
     from zoneinfo import ZoneInfo
     depart = r.get("maintenant")
@@ -297,11 +298,11 @@ def message_alerte(r, e=None, ordre=None, annonces=None):
         f"{'🟢 ACHAT' if s == 1 else '🔴 VENTE'} — ordre {ordre}",
         f"Méthode : {e['nom']}",
         "",
-        f"📍 Entrée : {e['entree']:.2f}   (prix actuel {r['prix']:.2f})",
-        f"🛑 Stop loss : {e['stop']:.2f}   (risque {risque_pts:.2f} $/once)",
+        f"📍 Entrée : {P(e['entree'])}   (prix actuel {P(r['prix'])})",
+        f"🛑 Stop loss : {P(e['stop'])}   (distance {P(risque_pts)})",
     ]
     for k, ((p, n), rr) in enumerate(zip(e["tps"], e["rr"]), 1):
-        lignes.append(f"🎯 TP{k} : {p:.2f}   (1:{rr:.1f}) — {n}")
+        lignes.append(f"🎯 TP{k} : {P(p)}   (1:{rr:.1f}) — {n}")
     lignes += [
         "",
         f"📦 Lot : {e['lots']:.2f}  → risque ≈ {e['risque_usd']:.0f} {_dev()} ({C.RISQUE_PCT:g} %)"
@@ -311,15 +312,15 @@ def message_alerte(r, e=None, ordre=None, annonces=None):
         "• Au TP1 : ferme 50 % et remonte le stop à l'entrée (break-even)",
         "• Au TP2 : ferme 30 %, laisse courir le reste vers TP3",
         f"• Ordre valable jusqu'à {fin} : annule-le s'il n'est pas déclenché",
-        f"• Setup invalidé si une bougie {C.UT_MTF} clôture {'sous' if s == 1 else 'au-dessus de'} {invalid:.2f}",
+        f"• Setup invalidé si une bougie {C.UT_MTF} clôture {'sous' if s == 1 else 'au-dessus de'} {P(invalid)}",
         "",
-        f"🔎 POI : {poi['nom']} {poi['bas']:.2f}–{poi['haut']:.2f}",
+        f"🔎 POI : {poi['nom']} {P(poi['bas'])}–{P(poi['haut'])}",
         "✅ " + " | ".join(t for ok, t, _ in r["check"] if ok)[:300],
         f"ℹ️ {r['statut']}",
     ]
     proch = N.prochaines(annonces, r.get("maintenant"), heures=C.VALIDITE_ORDRE_H + 2)
     if proch:
-        lignes += ["", "📰 Annonce forte USD bientôt : " + ", ".join(
+        lignes += ["", "📰 Annonce forte bientôt : " + ", ".join(
             f"{a['titre']} ({N.heure_paris(a['date'])})" for a in proch[:3])
             + " → prudence, réduis le risque ou attends après."]
     if C.SOURCE_PRIX.startswith("Twelve"):
@@ -360,13 +361,13 @@ def _annonces_du_jour(annonces):
     a = N.prochaines(annonces, heures=16)
     if not a:
         return ""
-    return ("📰 Annonces fortes USD aujourd'hui : "
+    return ("📰 Annonces fortes aujourd'hui : "
             + ", ".join(f"{x['titre']} ({N.heure_paris(x['date'])[-5:]})" for x in a)
             + f" — pas d'alerte {C.NEWS_AVANT_MIN} min avant / {C.NEWS_APRES_MIN} min après.\n")
 
 
-def resume_quotidien(r, annonces=None):
-    """Petit point chaque matin (vers 8h, heure de Paris), pour savoir que le robot tourne."""
+def resume_quotidien(resultats, annonces=None):
+    """Point du matin (vers 8h, heure de Paris) pour tous les marchés : [(code, résultat)]."""
     if not C.TELEGRAM_TOKEN or not C.TELEGRAM_CHAT_ID:
         return False
     from zoneinfo import ZoneInfo
@@ -380,14 +381,17 @@ def resume_quotidien(r, annonces=None):
             return False
     except OSError:
         pass
-    poi = r["poi"]
-    sens = {1: "🟢 haussier", -1: "🔴 baissier", 0: "⚪ neutre"}[r["biais"]]
-    txt = (f"☀️ Point du matin — {C.NOM_MARCHE}\n"
-           f"Prix : {r['prix']:.2f} | Biais : {sens}\n"
-           f"Setup actuel : note {r['note']} ({r['score']}/100)\n"
-           + (f"Zone à surveiller : {poi['nom']} {poi['bas']:.2f}–{poi['haut']:.2f}\n" if poi else "")
-           + f"{r['statut']}\n"
-           + _annonces_du_jour(annonces)
+    blocs, devises = [], set()
+    for code, r in resultats:
+        C.activer(code)
+        devises |= set(C.DEVISES_NEWS)
+        poi = r["poi"]
+        sens = {1: "🟢 haussier", -1: "🔴 baissier", 0: "⚪ neutre"}[r["biais"]]
+        blocs.append(f"▪️ {C.NOM_MARCHE} : {C.prix_txt(r['prix'])} | {sens} | note {r['note']} ({r['score']}/100)\n"
+                     + (f"   Zone : {poi['nom']} {C.prix_txt(poi['bas'])}–{C.prix_txt(poi['haut'])}\n" if poi else "")
+                     + f"   {r['statut']}")
+    C.DEVISES_NEWS = sorted(devises)
+    txt = ("☀️ Point du matin\n\n" + "\n".join(blocs) + "\n\n" + _annonces_du_jour(annonces)
            + "Le robot tourne et t'alertera dès qu'un setup A ou A+ apparaît.")
     try:
         _envoyer(txt)
@@ -423,7 +427,8 @@ def notifier_suivi(changes):
     """Prévient sur Telegram quand un trade du journal avance (entrée, TP, stop…)."""
     for t, evts in changes:
         sens = "ACHAT" if t["sens"] == 1 else "VENTE"
-        txt = (f"📒 Suivi du trade n°{t['id']} ({sens} {t['note']}, alerte du "
+        nom = C.MARCHES.get(t.get("marche", "XAUUSD"), {}).get("nom", "")
+        txt = (f"📒 Suivi du trade n°{t['id']} — {nom} ({sens} {t['note']}, alerte du "
                f"{t['date_alerte'][8:10]}/{t['date_alerte'][5:7]})\n" + "\n".join(evts))
         if t["statut"] in ("gagné", "perdu", "break-even"):
             icone = {"gagné": "✅", "perdu": "❌", "break-even": "↩️"}[t["statut"]]
@@ -454,7 +459,7 @@ def bilan_hebdo(journal, maintenant=None, forcer=False):
             pass
     debut = (m - timedelta_jours(m.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
     sem = [t for t in journal if J._ts(t["date_alerte"]) >= J._ts(debut)]
-    txt = J.texte_stats(J.stats(sem), f"📊 Bilan de la semaine — {C.NOM_MARCHE}")
+    txt = J.texte_stats(J.stats(sem), "📊 Bilan de la semaine")
     txt += "\n\n" + J.texte_stats(J.stats(journal), "📚 Depuis le début")
     print("\n" + txt + "\n")
     if not telegram_actif():

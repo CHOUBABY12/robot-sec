@@ -126,15 +126,39 @@ def _corriger_ecart(df):
 TD_INTERVALLES = {"15m": "15min", "1h": "1h", "5m": "5min", "30m": "30min"}
 
 
+_td_appels = []          # horaires des derniers appels (limite gratuite : 8 par minute)
+_td_cache = {}           # (symbole, ut) → (heure du téléchargement, données)
+
+
+def _td_attendre():
+    import time
+    while True:
+        maintenant = time.time()
+        while _td_appels and maintenant - _td_appels[0] > 61:
+            _td_appels.pop(0)
+        if len(_td_appels) < 7:
+            _td_appels.append(maintenant)
+            return
+        time.sleep(61 - (maintenant - _td_appels[0]) + 0.5)
+
+
 def _twelvedata(symbole, ut, cle, nb=5000):
+    """Bougies Twelve Data. Le 1h n'est retéléchargé qu'une fois par heure (économie de crédits)."""
     import json
+    import time
     import urllib.parse
     import urllib.request
+    cle_cache = (symbole, ut)
+    if ut != C.UT_LTF and cle_cache in _td_cache and time.time() - _td_cache[cle_cache][0] < 3300:
+        return _td_cache[cle_cache][1]
+    _td_attendre()
     q = urllib.parse.urlencode({"symbol": symbole, "interval": TD_INTERVALLES[ut], "outputsize": nb,
                                 "timezone": "UTC", "order": "ASC", "apikey": cle})
     rep = json.loads(urllib.request.urlopen(f"https://api.twelvedata.com/time_series?{q}",
                                             timeout=20).read().decode("utf-8"))
-    return _td_vers_df(rep)
+    df = _td_vers_df(rep)
+    _td_cache[cle_cache] = (time.time(), df)
+    return df
 
 
 def _td_vers_df(rep):
@@ -147,12 +171,18 @@ def _td_vers_df(rep):
 
 
 def charger_twelvedata(cle):
-    h1 = _twelvedata("XAU/USD", "1h", cle)
-    ltf = _twelvedata("XAU/USD", C.UT_LTF, cle)
-    try:
-        ag = _twelvedata("XAG/USD", "1h", cle)
-    except Exception:
-        ag = None
+    m = C.MARCHES[C.MARCHE]
+    if not m.get("twelvedata"):
+        raise RuntimeError("marché non disponible sur Twelve Data")
+    h1 = _twelvedata(m["twelvedata"], "1h", cle)
+    ltf = _twelvedata(m["twelvedata"], C.UT_LTF, cle)
+    ag = None
+    smt = C.MARCHES.get(m.get("smt") or "", {}).get("twelvedata")
+    if smt:
+        try:
+            ag = _twelvedata(smt, "1h", cle)
+        except Exception:
+            ag = None
     return h1, ltf, ag
 
 
@@ -160,7 +190,7 @@ def charger_brut():
     """Télécharge les données brutes : or 1h, or LTF, argent 1h."""
     import os
     cle = os.environ.get("TWELVEDATA_API_KEY", "")
-    if cle:
+    if cle and C.MARCHES[C.MARCHE].get("twelvedata"):
         print("⏳ Téléchargement des données (Twelve Data, temps réel)…")
         try:
             h1, ltf, ag = charger_twelvedata(cle)
@@ -169,15 +199,16 @@ def charger_brut():
             return h1, ltf, ag
         except Exception as ex:
             print(f"  ⚠️ Twelve Data indisponible ({ex}) → Yahoo Finance en secours.")
-    print("⏳ Téléchargement des données (Yahoo Finance, ~15 min de retard)…")
-    C.SOURCE_PRIX = "Yahoo Finance (contrat à terme, ~15 min de retard)"
+    print("⏳ Téléchargement des données (Yahoo Finance)…")
+    C.SOURCE_PRIX = ("Yahoo Finance (contrat à terme, ~15 min de retard)" if C.SYMBOLE.endswith("=F")
+                     else "Yahoo Finance")
     h1 = _corriger_ecart(_yahoo(C.SYMBOLE, "1h", PERIODES["1h"]))
     ltf = _corriger_ecart(_yahoo(C.SYMBOLE, C.UT_LTF, PERIODES.get(C.UT_LTF, "59d")))
     if h1 is None or ltf is None:
         sys.exit("❌ Impossible de télécharger les prix. Vérifie ta connexion internet "
                  "ou réessaie dans quelques minutes.")
     try:
-        ag = _yahoo(C.SYMBOLE_SMT, "1h", PERIODES["1h"])   # facultatif
+        ag = _yahoo(C.SYMBOLE_SMT, "1h", PERIODES["1h"]) if C.SYMBOLE_SMT else None
     except Exception:
         ag = None
     _taux_eurusd()

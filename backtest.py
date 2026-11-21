@@ -42,11 +42,13 @@ def main():
     p.add_argument("--pas", type=int, default=4, help="nb de bougies LTF entre 2 analyses (4 = 1h)")
     p.add_argument("--note", choices=["A+", "A", "B"], help="note minimum (défaut : celle de config.py)")
     p.add_argument("--jours", type=int, help="ne tester que les X derniers jours")
+    p.add_argument("--marche", default="XAUUSD", choices=sorted(C.MARCHES))
     p.add_argument("--demo", action="store_true", help="données fictives")
     p.add_argument("--telegram", action="store_true", help="envoyer le résumé sur Telegram")
     args = p.parse_args()
     if args.note:
         C.NOTE_MINI_ALERTE = args.note
+    C.activer(args.marche)
 
     h1, ltf, ag = D.demo_brut(jours=90) if args.demo else D.charger_brut()
     dur = D.duree(C.UT_LTF)
@@ -79,7 +81,7 @@ def main():
     J.mettre_a_jour(journal, D.fermees(ltf, dur, pd.Timestamp.now(tz="UTC")))
 
     os.makedirs("rapports", exist_ok=True)
-    nom = "backtest_demo" if args.demo else "backtest"
+    nom = "backtest_demo" if args.demo else f"backtest_{args.marche}"
     J.sauver(journal, os.path.join("rapports", f"{nom}.json"))
     with open(os.path.join("rapports", f"{nom}.csv"), "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";")

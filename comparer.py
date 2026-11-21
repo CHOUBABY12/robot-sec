@@ -49,7 +49,7 @@ H_NS = 3600 * 10**9
 # ---------------------------------------------------------------------------
 def charger(demo):
     fichiers = ["signaux/demo.json.gz"] if demo else sorted(
-        f for f in glob.glob("signaux/signaux_*.json.gz"))
+        f for f in glob.glob(f"signaux/signaux_{C.MARCHE}_*.json.gz"))
     sig = []
     for f in fichiers:
         with gzip.open(f, "rt", encoding="utf-8") as fh:
@@ -57,7 +57,7 @@ def charger(demo):
     if not sig:
         sys.exit("❌ Aucun signal : lance d'abord signaux.py.")
     sig.sort(key=lambda s: s["t"])
-    m15 = D.demo_brut(jours=120)[1] if demo else H.lire("xauusd", "m15")
+    m15 = D.demo_brut(jours=120)[1] if demo else H.lire(C.MARCHES[C.MARCHE]["dukascopy"], "m15")
     T = m15.index.tz_convert("UTC").as_unit("ns").asi8
     for s in sig:
         s["_t"] = pd.Timestamp(s["t"]).as_unit("ns").value
@@ -173,12 +173,14 @@ def ligne(m):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--demo", action="store_true")
+    p.add_argument("--marche", default="XAUUSD", choices=sorted(C.MARCHES))
     p.add_argument("--coupure", default="2025-01-01", help="début de la période de vérification")
     p.add_argument("--min-trades", type=int, default=60, help="minimum de trades en apprentissage")
     p.add_argument("--telegram", action="store_true", help="envoyer le résumé sur Telegram")
     p.add_argument("--candidat", action="append", default=[],
                    help='variante à détailler, ex. "A|auto|hors Asie|BE au TP1|8"')
     a = p.parse_args()
+    C.activer(a.marche)
     t0 = time.time()
     sig, barres = charger(a.demo)
     m = Moteur(sig, barres)
@@ -313,7 +315,7 @@ def main():
         dire("\nPas assez de trades pour tester les poids mesurés.")
 
     os.makedirs("rapports", exist_ok=True)
-    nom = "optimisation_demo" if a.demo else "optimisation"
+    nom = "optimisation_demo" if a.demo else f"optimisation_{a.marche}"
     with open(os.path.join("rapports", f"{nom}.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(out) + "\n")
     with open(os.path.join("rapports", f"{nom}.json"), "w", encoding="utf-8") as f:
@@ -330,7 +332,7 @@ def main():
         for k, (v, ap_, ve) in enumerate(eligibles[:3], 1):
             court += ["", f"{k}. {nom_variante(v)}", f"• appr. {ligne(ap_)}", f"• vérif. {ligne(ve)}"]
         court += ["", f"Gagnantes en apprentissage ET en vérification : {len(deux)}/{len(eligibles)}",
-                  "Rapport complet : rapports/optimisation.md sur GitHub."]
+                  f"Rapport complet : rapports/optimisation_{a.marche}.md sur GitHub."]
         if R.telegram_actif():
             R._envoyer("\n".join(court)[:4000])
 

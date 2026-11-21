@@ -38,7 +38,8 @@ def charger(fichier=FICHIER):
 def sauver(journal, fichier=FICHIER):
     os.makedirs(os.path.dirname(fichier), exist_ok=True)
     with open(fichier, "w", encoding="utf-8") as f:
-        json.dump(journal, f, ensure_ascii=False, indent=1)
+        json.dump([{k: v for k, v in t.items() if not k.endswith("_")} for t in journal],
+                  f, ensure_ascii=False, indent=1)
 
 
 def _ts(x):
@@ -56,7 +57,9 @@ def _paris(t):
 def cle_setup(r):
     """Un setup = un sens + un POI (même si la note passe de A à A+)."""
     p = r["poi"]
-    return f"{r['sens']}|{round(p['bas'])}|{round(p['haut'])}"
+    d = C.DECIMALES - 2 if C.DECIMALES > 2 else 0     # POI arrondi à ~1/100 de l'échelle
+    cle = f"{r['sens']}|{round(p['bas'], d)}|{round(p['haut'], d)}"
+    return cle if C.MARCHE == "XAUUSD" else f"{C.MARCHE}|{cle}"
 
 
 def setup_a_alerter(r, journal, maintenant):
@@ -91,8 +94,9 @@ def ajouter(journal, r, e, ordre, cle, maintenant):
         "session": next((s for s in r["sessions"] if s.startswith("Killzone")),
                         r["sessions"][0] if r["sessions"] else "hors session"),
         "poi": r["poi"]["nom"], "cle": cle,
-        "prix_alerte": round(r["prix"], 2), "entree": round(e["entree"], 2),
-        "stop": round(e["stop"], 2), "tps": [round(p, 2) for p, _ in e["tps"]],
+        "marche": C.MARCHE,
+        "prix_alerte": round(r["prix"], C.DECIMALES), "entree": round(e["entree"], C.DECIMALES),
+        "stop": round(e["stop"], C.DECIMALES), "tps": [round(p, C.DECIMALES) for p, _ in e["tps"]],
         "rr": [round(x, 2) for x in e["rr"]],
         "statut": "en attente", "resultat_R": 0.0, "tp_touches": 0,
         "date_entree": None, "date_sortie": None, "evenements": [],
@@ -142,7 +146,7 @@ def simuler(t, df):
         res += restant * (stop - E) * s / risque
         restant, d_out = 0.0, idx[k]
         if touches == 0:
-            evts.append(f"🛑 {_paris(idx[k])} stop touché à {stop:.2f}")
+            evts.append(f"🛑 {_paris(idx[k])} stop touché à {C.prix_txt(stop)}")
         else:
             evts.append(f"↩️ {_paris(idx[k])} reste fermé à l'entrée (break-even)")
 
@@ -165,7 +169,7 @@ def simuler(t, df):
                     break
                 continue
             statut, d_in = "en cours", idx[k]
-            evts.append(f"▶️ {_paris(idx[k])} ordre déclenché à {E:.2f}")
+            evts.append(f"▶️ {_paris(idx[k])} ordre déclenché à {C.prix_txt(E)}")
             if stop_touche(k):                      # même bougie : prudence
                 fermer_au_stop(k)
                 break
@@ -180,7 +184,7 @@ def simuler(t, df):
             res += parts[touches] * gain
             restant -= parts[touches]
             touches += 1
-            txt = f"🎯 {_paris(idx[k])} TP{touches} touché ({tps[touches - 1]:.2f})"
+            txt = f"🎯 {_paris(idx[k])} TP{touches} touché ({C.prix_txt(tps[touches - 1])})"
             if touches == 1 and touches < len(tps):
                 stop = E
                 txt += " → stop remonté à l'entrée"
@@ -191,7 +195,7 @@ def simuler(t, df):
         if idx[k] - d_in >= timedelta(hours=C.DUREE_MAX_TRADE_H):
             res += restant * (cl[k] - E) * s / risque
             restant, d_out = 0.0, idx[k]
-            evts.append(f"⏱ {_paris(idx[k])} durée max atteinte → fermé à {cl[k]:.2f}")
+            evts.append(f"⏱ {_paris(idx[k])} durée max atteinte → fermé à {C.prix_txt(cl[k])}")
             break
 
     if statut == "en cours" and restant <= 1e-9:
@@ -205,10 +209,16 @@ def simuler(t, df):
     return nouveaux
 
 
-def mettre_a_jour(journal, df):
-    """Met à jour tous les trades ouverts. Renvoie [(trade, nouveaux évènements)]."""
+def marche_de(t):
+    return t.get("marche", "XAUUSD")
+
+
+def mettre_a_jour(journal, df, marche=None):
+    """Met à jour les trades ouverts (du marché donné). Renvoie [(trade, nouveaux évènements)]."""
     changes = []
     for t in journal:
+        if marche and marche_de(t) != marche:
+            continue
         nv = simuler(t, df)
         if nv:
             changes.append((t, nv))
@@ -223,6 +233,8 @@ def risque_compte():
 
 
 def stats(trades):
+    for t in trades:
+        t["marche_"] = marche_de(t)
     fermes = [t for t in trades if t["statut"] in ("gagné", "perdu", "break-even")]
     g = [t for t in fermes if t["statut"] == "gagné"]
     p = [t for t in fermes if t["statut"] == "perdu"]
@@ -249,6 +261,7 @@ def stats(trades):
         "profit_factor": gains / pertes if pertes else (float("inf") if gains else 0.0),
         "argent": total * risque_compte(),
         "par_note": par("note"), "par_session": par("session"), "par_methode": par("methode"),
+        "par_marche": par("marche_"),
         "meilleur": max(fermes, key=lambda t: t["resultat_R"], default=None),
         "pire": min(fermes, key=lambda t: t["resultat_R"], default=None),
     }
@@ -266,7 +279,7 @@ def texte_stats(st, titre):
               f"Résultat : {st['R']:+.2f} R  (≈ {st['argent']:+.0f} {dev} avec "
               f"{C.RISQUE_PCT:g} % de risque)",
               f"Moyenne par trade : {st['R_moyen']:+.2f} R  |  profit factor : {pf}"]
-        for nom, cle in (("Par note", "par_note"), ("Par session", "par_session"),
+        for nom, cle in (("Par marché", "par_marche"), ("Par note", "par_note"), ("Par session", "par_session"),
                          ("Par méthode", "par_methode")):
             if st[cle]:
                 l.append(f"{nom} : " + " | ".join(

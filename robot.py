@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-🤖 ROBOT D'ANALYSE SMC / ICT — OR (XAU/USD)
+🤖 ROBOT D'ANALYSE SMC / ICT — or et autres marchés (voir MARCHES_ACTIFS dans config.py)
 
 Utilisation (dans le Terminal, depuis le dossier du robot) :
     python3 robot.py                    analyse unique + graphiques
     python3 robot.py --boucle 15        analyse toutes les 15 minutes
     python3 robot.py --capital 2000 --risque 0.5
+    python3 robot.py --marche EURUSD    analyser un seul marché
     python3 robot.py --bilan            statistiques du journal des trades
     python3 robot.py --demo             test avec des données fictives (sans internet)
 
@@ -32,29 +33,21 @@ import rapport as R         # noqa: E402
 import strategie as ST      # noqa: E402
 
 
-def une_analyse(args):
-    maintenant = pd.Timestamp.now(tz="UTC")
+def analyser_marche(code, args, journal, annonces, maintenant):
+    """Analyse complète d'un marché : rapport, suivi des trades, alerte éventuelle."""
+    C.activer(code)
     data = D.charger_demo(maintenant=maintenant) if args.demo else D.charger_tout(maintenant)
     res = ST.analyser(data, maintenant)
     R.afficher(res, demo=args.demo)
     if not args.sans_graphique:
-        f1 = R.graphique(res, "mtf")
-        f2 = R.graphique(res, "ltf", nb=200)
-        f3 = R.graphique(res, "htf", nb=150)
-        print(f"  📈 Graphiques : {f3}, {f1}, {f2}\n")
+        fichiers = [R.graphique(res, "htf", nb=150), R.graphique(res, "mtf"), R.graphique(res, "ltf", nb=200)]
+        print(f"  📈 Graphiques : {', '.join(fichiers)}\n")
     R.sauvegarder_json(res)
 
-    # 1. Suivi des trades déjà alertés (en démo, on ne touche pas au vrai journal)
-    fichier = os.path.join("rapports", "journal_demo.json") if args.demo else J.FICHIER
-    journal = J.charger(fichier)
-    R.notifier_suivi(J.mettre_a_jour(journal, data["ltf_complet"]))
+    # 1. suivi des trades déjà alertés sur ce marché
+    R.notifier_suivi(J.mettre_a_jour(journal, data["ltf_complet"], marche=code))
 
-    # 2. Annonces économiques
-    annonces = [] if args.demo else N.charger()
-    if R.resume_quotidien(res, annonces):
-        print("  📲 Point du matin envoyé.\n")
-
-    # 3. Nouvelle alerte ?
+    # 2. nouvelle alerte ?
     decision = J.setup_a_alerter(res, journal, maintenant)
     if decision:
         e, ordre, cle = decision
@@ -66,12 +59,31 @@ def une_analyse(args):
             t = J.ajouter(journal, res, e, ordre, cle, maintenant)
             J.simuler(t, data["ltf_complet"])
             print(f"  📲 Alerte envoyée et ajoutée au journal (trade n°{t['id']}).\n")
-    J.sauver(journal, fichier)
+    return res
 
-    # 4. Bilan de la semaine (vendredi soir)
+
+def une_analyse(args):
+    maintenant = pd.Timestamp.now(tz="UTC")
+    marches = [args.marche] if args.marche else C.MARCHES_ACTIFS
+    fichier = os.path.join("rapports", "journal_demo.json") if args.demo else J.FICHIER
+    journal = J.charger(fichier)
+    annonces = [] if args.demo else N.charger()
+    resultats = []
+    for code in marches:
+        try:
+            resultats.append((code, analyser_marche(code, args, journal, annonces, maintenant)))
+        except SystemExit as ex:              # données indisponibles pour ce marché : on continue
+            print(f"  ⚠️ {code} : analyse impossible ({ex}).")
+        except Exception as ex:
+            print(f"  ⚠️ {code} : erreur inattendue ({type(ex).__name__}: {ex}).")
+    J.sauver(journal, fichier)
+    if resultats and R.resume_quotidien(resultats, annonces):
+        print("  📲 Point du matin envoyé.\n")
     if not args.demo and R.bilan_hebdo(journal):
         print("  📲 Bilan de la semaine envoyé.\n")
-    return res
+    if not resultats:
+        sys.exit("❌ Aucun marché n'a pu être analysé.")
+    return resultats
 
 
 def main():
@@ -83,6 +95,7 @@ def main():
     p.add_argument("--test-telegram", action="store_true", help="envoyer un message de test")
     p.add_argument("--bilan", action="store_true", help="afficher (et envoyer) les statistiques")
     p.add_argument("--test-news", action="store_true", help="afficher les annonces fortes USD de la semaine")
+    p.add_argument("--marche", choices=sorted(C.MARCHES), help="analyser un seul marché")
     p.add_argument("--demo", action="store_true", help="données fictives, sans internet")
     args = p.parse_args()
     if args.capital:
@@ -94,7 +107,7 @@ def main():
         sys.exit(0 if R.message_test() else 1)
     if args.test_news:
         a = N.charger(forcer=True)
-        print(f"📰 {len(a)} annonce(s) forte(s) USD cette semaine :")
+        print(f"📰 {len(a)} annonce(s) forte(s) cette semaine (toutes devises) :")
         for x in a:
             print(f"   {N.heure_paris(x['date'])}  {x['titre']}")
         return

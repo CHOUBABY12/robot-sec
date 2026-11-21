@@ -5,7 +5,7 @@
 et enregistre, à chaque pas, tout ce qu'il voyait : note, checklist, POI, entrées.
 Les variantes de réglages sont ensuite testées très vite par comparer.py.
 
-    python3 signaux.py --de 2023-01-01 --a 2024-01-01      (données Dukascopy de data/)
+    python3 signaux.py --marche EURUSD --annee 2023      (données Dukascopy de data/)
     python3 signaux.py --demo                              (données fictives)
 """
 import argparse
@@ -33,11 +33,16 @@ CLES_CHECK = ["biais", "mtf_aligne", "zone_htf", "poi", "idm", "liq_prise",
 
 
 def sources(demo=False):
+    """Historique Dukascopy du marché actif (C.activer) : 1h, 15m et 1h du marché SMT."""
     if demo:
         return D.demo_brut(jours=120)
-    h1, m15, ag = H.lire("xauusd", "h1"), H.lire("xauusd", "m15"), H.lire("xagusd", "h1")
+    m = C.MARCHES[C.MARCHE]
+    ins = m["dukascopy"]
+    smt = C.MARCHES.get(m.get("smt") or "", {}).get("dukascopy")
+    h1, m15 = H.lire(ins, "h1"), H.lire(ins, "m15")
+    ag = H.lire(smt, "h1") if smt else None
     if h1 is None or m15 is None:
-        sys.exit("❌ Historique absent : lance d'abord « python3 historique.py telecharger ».")
+        sys.exit(f"❌ Historique {C.MARCHE} absent : lance d'abord « python3 historique.py telecharger ».")
     return h1, m15, ag
 
 
@@ -100,15 +105,17 @@ def main():
     p.add_argument("--a", default="2100-01-01")
     p.add_argument("--pas", type=int, default=4)
     p.add_argument("--annee", type=int, help="raccourci : toute une année")
+    p.add_argument("--marche", default="XAUUSD", choices=sorted(C.MARCHES))
     p.add_argument("--demo", action="store_true")
     p.add_argument("--sortie")
     a = p.parse_args()
     if a.annee:
         a.de, a.a = f"{a.annee}-01-01", f"{a.annee + 1}-01-01"
+    C.activer(a.marche)
     h1, m15, ag = sources(a.demo)
     sig = generer(h1, m15, ag, a.de, a.a, a.pas)
     os.makedirs("signaux", exist_ok=True)
-    out = a.sortie or os.path.join("signaux", ("demo" if a.demo else f"signaux_{a.de[:4]}") + ".json.gz")
+    out = a.sortie or os.path.join("signaux", ("demo" if a.demo else f"signaux_{a.marche}_{a.de[:4]}") + ".json.gz")
     with gzip.open(out, "wt", encoding="utf-8") as f:
         json.dump(sig, f)
     print(f"✅ {len(sig)} signaux → {out}")
