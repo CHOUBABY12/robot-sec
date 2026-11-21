@@ -1,12 +1,12 @@
 # ⚖️ Optimisation du robot SMC — OR (XAU/USD)
 34062 signaux. Apprentissage : 14/02/2021 → 01/01/2025 | Vérification : 01/01/2025 → 20/11/2026
 
-675 variantes testées en 21 s.
+675 variantes testées en 16 s.
 
 ## Réglage actuel du robot
-`note ≥ A | auto | toutes | BE au TP1 | 4h`
-- Apprentissage :  400 trades   46 %    +57.2 R  (+0.14/trade, +1.2 R/mois)  PF 1.28  DD 14.6 R
-- Vérification  :  165 trades   53 %    +38.2 R  (+0.23/trade, +1.7 R/mois)  PF 1.49  DD 22.6 R
+`note ≥ A | auto | hors Asie | BE au TP1 | 8h`
+- Apprentissage :  391 trades   46 %    +61.2 R  (+0.16/trade, +1.3 R/mois)  PF 1.30  DD 16.2 R
+- Vérification  :  152 trades   56 %    +55.3 R  (+0.36/trade, +2.4 R/mois)  PF 1.84  DD 17.3 R
 
 ## Top 15 sur l'apprentissage (≥ 60 trades), et leur vérification
  1. `note ≥ B | auto | hors Asie | BE au TP2 | 8h`
@@ -90,10 +90,10 @@ Variantes gagnantes en apprentissage : 475/592 ; gagnantes aussi en vérificatio
 
 ## Détail par année et par sens (achats / ventes)
 
-`note ≥ A | auto | toutes | BE au TP1 | 4h`
-- par année : 2021 +5 R (82) | 2022 +12 R (91) | 2023 +30 R (115) | 2024 +11 R (112) | 2025 +21 R (94) | 2026 +18 R (71)
-- achats : +59.7 R sur 285 trades (48 % gagnants, +0.21 R/trade)
-- ventes : +35.7 R sur 280 trades (49 % gagnants, +0.13 R/trade)
+`note ≥ A | auto | hors Asie | BE au TP1 | 8h`
+- par année : 2021 +7 R (78) | 2022 +22 R (89) | 2023 +33 R (116) | 2024 -1 R (108) | 2025 +23 R (88) | 2026 +33 R (64)
+- achats : +63.2 R sur 281 trades (48 % gagnants, +0.22 R/trade)
+- ventes : +53.3 R sur 262 trades (50 % gagnants, +0.20 R/trade)
 
 `note ≥ B | auto | hors Asie | BE au TP2 | 8h`
 - par année : 2021 +27 R (127) | 2022 +23 R (160) | 2023 +50 R (174) | 2024 +11 R (160) | 2025 +16 R (176) | 2026 +32 R (109)
@@ -104,11 +104,6 @@ Variantes gagnantes en apprentissage : 475/592 ; gagnantes aussi en vérificatio
 - par année : 2021 +25 R (131) | 2022 +29 R (160) | 2023 +46 R (180) | 2024 +11 R (163) | 2025 +15 R (176) | 2026 +34 R (109)
 - achats : +65.6 R sur 504 trades (45 % gagnants, +0.13 R/trade)
 - ventes : +94.3 R sur 415 trades (48 % gagnants, +0.23 R/trade)
-
-`note ≥ A | auto | hors Asie | BE au TP1 | 8h`
-- par année : 2021 +7 R (78) | 2022 +22 R (89) | 2023 +33 R (116) | 2024 -1 R (108) | 2025 +23 R (88) | 2026 +33 R (64)
-- achats : +63.2 R sur 281 trades (48 % gagnants, +0.22 R/trade)
-- ventes : +53.3 R sur 262 trades (50 % gagnants, +0.20 R/trade)
 
 ## Poids de la checklist mesurés sur les données (apprentissage)
 | Confluence | R moyen si oui | si non | écart | poids actuel → mesuré |
@@ -127,4 +122,4 @@ Variantes gagnantes en apprentissage : 475/592 ; gagnantes aussi en vérificatio
 Avec les poids mesurés, meilleur seuil en apprentissage : score ≥ 30
 - Apprentissage :  764 trades   46 %    +99.0 R  (+0.13/trade, +2.1 R/mois)  PF 1.25  DD 19.6 R
 - Vérification  :  360 trades   42 %     +2.7 R  (+0.01/trade, +0.1 R/mois)  PF 1.01  DD 39.0 R
-- Réglage actuel (vérification) :  165 trades   53 %    +38.2 R  (+0.23/trade, +1.7 R/mois)  PF 1.49  DD 22.6 R
+- Réglage actuel (vérification) :  152 trades   56 %    +55.3 R  (+0.36/trade, +2.4 R/mois)  PF 1.84  DD 17.3 R
