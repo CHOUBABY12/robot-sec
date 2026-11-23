@@ -1,1 +1,68 @@
-[]
+[
+ {
+  "id": 1,
+  "date_alerte": "2026-11-23T12:21:28.756303+00:00",
+  "sens": -1,
+  "note": "A",
+  "score": 70,
+  "methode": "Entrée sur confirmation",
+  "ordre": "SELL LIMIT",
+  "session": "Killzone New York",
+  "poi": "Order Block Décisionnel (OB de BOS)",
+  "cle": "EURUSD|-1|1.099|1.102",
+  "marche": "EURUSD",
+  "prix_alerte": 1.09627,
+  "entree": 1.09742,
+  "stop": 1.10071,
+  "tps": [
+   1.09,
+   1.07698
+  ],
+  "rr": [
+   2.26,
+   6.21
+  ],
+  "statut": "annulé",
+  "resultat_R": 0.0,
+  "tp_touches": 0,
+  "date_entree": null,
+  "date_sortie": null,
+  "evenements": [
+   "🏃 23/11 16:45 le prix est parti au TP1 sans déclencher l'ordre → annulé"
+  ]
+ },
+ {
+  "id": 2,
+  "date_alerte": "2026-11-23T13:21:36.893265+00:00",
+  "sens": -1,
+  "note": "A",
+  "score": 70,
+  "methode": "Entrée sur confirmation",
+  "ordre": "SELL LIMIT",
+  "session": "Killzone New York",
+  "poi": "Order Block Extrême (OB de CHoCH)",
+  "cle": "EURUSD|-1|1.098|1.101",
+  "marche": "EURUSD",
+  "prix_alerte": 1.09367,
+  "entree": 1.09742,
+  "stop": 1.10074,
+  "tps": [
+   1.09306,
+   1.09,
+   1.08557
+  ],
+  "rr": [
+   1.31,
+   2.24,
+   3.57
+  ],
+  "statut": "annulé",
+  "resultat_R": 0.0,
+  "tp_touches": 0,
+  "date_entree": null,
+  "date_sortie": null,
+  "evenements": [
+   "🏃 23/11 14:45 le prix est parti au TP1 sans déclencher l'ordre → annulé"
+  ]
+ }
+]
