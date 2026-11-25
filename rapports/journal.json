@@ -64,5 +64,73 @@
   "evenements": [
    "🏃 23/11 14:45 le prix est parti au TP1 sans déclencher l'ordre → annulé"
   ]
+ },
+ {
+  "id": 3,
+  "date_alerte": "2026-11-25T06:07:55.119299+00:00",
+  "sens": -1,
+  "note": "A",
+  "score": 70,
+  "methode": "Entrée sur confirmation",
+  "ordre": "SELL LIMIT",
+  "session": "hors session",
+  "poi": "Order Block Décisionnel (OB de BOS)",
+  "cle": "-1|3618|3646",
+  "marche": "XAUUSD",
+  "prix_alerte": 3525.21,
+  "entree": 3594.92,
+  "stop": 3647.87,
+  "tps": [
+   3524.48,
+   3449.27,
+   3402.78
+  ],
+  "rr": [
+   1.33,
+   2.75,
+   3.63
+  ],
+  "statut": "annulé",
+  "resultat_R": 0.0,
+  "tp_touches": 0,
+  "date_entree": null,
+  "date_sortie": null,
+  "evenements": [
+   "🏃 25/11 07:00 le prix est parti au TP1 sans déclencher l'ordre → annulé"
+  ]
+ },
+ {
+  "id": 4,
+  "date_alerte": "2026-11-25T07:07:59.619322+00:00",
+  "sens": -1,
+  "note": "A",
+  "score": 75,
+  "methode": "Entrée sur confirmation",
+  "ordre": "SELL LIMIT",
+  "session": "Killzone Londres",
+  "poi": "Order Block Extrême (OB de CHoCH)",
+  "cle": "-1|3612|3689",
+  "marche": "XAUUSD",
+  "prix_alerte": 3512.82,
+  "entree": 3594.92,
+  "stop": 3647.92,
+  "tps": [
+   3522.12,
+   3480.04,
+   3384.55
+  ],
+  "rr": [
+   1.37,
+   2.17,
+   3.97
+  ],
+  "statut": "annulé",
+  "resultat_R": 0.0,
+  "tp_touches": 0,
+  "date_entree": null,
+  "date_sortie": null,
+  "evenements": [
+   "🏃 25/11 08:00 le prix est parti au TP1 sans déclencher l'ordre → annulé"
+  ]
  }
 ]
