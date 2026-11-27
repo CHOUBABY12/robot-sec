@@ -256,13 +256,81 @@
    2.04,
    3.59
   ],
+  "statut": "perdu",
+  "resultat_R": -1.0,
+  "tp_touches": 0,
+  "date_entree": "2026-11-27T07:00:00+00:00",
+  "date_sortie": "2026-11-27T09:00:00+00:00",
+  "evenements": [
+   "▶️ 27/11 08:00 ordre déclenché à 3657.78",
+   "🛑 27/11 10:00 stop touché à 3682.99"
+  ]
+ },
+ {
+  "id": 9,
+  "date_alerte": "2026-11-27T12:05:04.050688+00:00",
+  "sens": -1,
+  "note": "A+",
+  "score": 80,
+  "methode": "Entrée sur confirmation",
+  "ordre": "AU MARCHÉ (Sell)",
+  "session": "Killzone New York",
+  "poi": "Order Block Extrême (OB de CHoCH)",
+  "cle": "EURUSD|-1|1.098|1.101",
+  "marche": "EURUSD",
+  "prix_alerte": 1.09662,
+  "entree": 1.09662,
+  "stop": 1.09861,
+  "tps": [
+   1.09379,
+   1.09035,
+   1.08816
+  ],
+  "rr": [
+   1.42,
+   3.16,
+   4.26
+  ],
+  "statut": "en cours",
+  "resultat_R": 0.71,
+  "tp_touches": 1,
+  "date_entree": "2026-11-27T12:00:00+00:00",
+  "date_sortie": null,
+  "evenements": [
+   "▶️ 27/11 13:00 ordre déclenché à 1.09662",
+   "🎯 27/11 16:45 TP1 touché (1.09379) → stop remonté à l'entrée"
+  ]
+ },
+ {
+  "id": 10,
+  "date_alerte": "2026-11-27T14:05:18.004559+00:00",
+  "sens": -1,
+  "note": "A",
+  "score": 73,
+  "methode": "Entrée sur confirmation",
+  "ordre": "AU MARCHÉ (Sell)",
+  "session": "Killzone New York",
+  "poi": "Order Block Extrême (OB de CHoCH)",
+  "cle": "EURUSD|-1|1.097|1.099",
+  "marche": "EURUSD",
+  "prix_alerte": 1.09512,
+  "entree": 1.09519,
+  "stop": 1.0972,
+  "tps": [
+   1.09315,
+   1.09035
+  ],
+  "rr": [
+   1.01,
+   2.4
+  ],
   "statut": "en cours",
   "resultat_R": 0.0,
   "tp_touches": 0,
-  "date_entree": "2026-11-27T07:00:00+00:00",
+  "date_entree": "2026-11-27T14:00:00+00:00",
   "date_sortie": null,
   "evenements": [
-   "▶️ 27/11 08:00 ordre déclenché à 3657.78"
+   "▶️ 27/11 15:00 ordre déclenché à 1.09519"
   ]
  }
 ]
