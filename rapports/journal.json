@@ -197,5 +197,39 @@
    "▶️ 26/11 10:15 ordre déclenché à 1.09749",
    "🛑 26/11 10:15 stop touché à 1.09800"
   ]
+ },
+ {
+  "id": 7,
+  "date_alerte": "2026-11-26T21:35:10.098439+00:00",
+  "sens": -1,
+  "note": "A",
+  "score": 65,
+  "methode": "Entrée raffinée / sniper",
+  "ordre": "SELL LIMIT",
+  "session": "hors session",
+  "poi": "Order Block Extrême (OB de CHoCH)",
+  "cle": "EURUSD|-1|1.098|1.101",
+  "marche": "EURUSD",
+  "prix_alerte": 1.09697,
+  "entree": 1.09814,
+  "stop": 1.09859,
+  "tps": [
+   1.0976,
+   1.09674,
+   1.09575
+  ],
+  "rr": [
+   1.2,
+   3.11,
+   5.31
+  ],
+  "statut": "annulé",
+  "resultat_R": 0.0,
+  "tp_touches": 0,
+  "date_entree": null,
+  "date_sortie": null,
+  "evenements": [
+   "🏃 26/11 22:30 le prix est parti au TP1 sans déclencher l'ordre → annulé"
+  ]
  }
 ]
