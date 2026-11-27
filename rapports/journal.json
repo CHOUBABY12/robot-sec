@@ -156,13 +156,14 @@
    1.46,
    3.52
   ],
-  "statut": "en cours",
-  "resultat_R": 0.0,
+  "statut": "perdu",
+  "resultat_R": -1.0,
   "tp_touches": 0,
   "date_entree": "2026-11-26T14:30:00+00:00",
-  "date_sortie": null,
+  "date_sortie": "2026-11-27T02:00:00+00:00",
   "evenements": [
-   "▶️ 26/11 15:30 ordre déclenché à 3582.82"
+   "▶️ 26/11 15:30 ordre déclenché à 3582.82",
+   "🛑 27/11 03:00 stop touché à 3605.24"
   ]
  },
  {
@@ -230,6 +231,38 @@
   "date_sortie": null,
   "evenements": [
    "🏃 26/11 22:30 le prix est parti au TP1 sans déclencher l'ordre → annulé"
+  ]
+ },
+ {
+  "id": 8,
+  "date_alerte": "2026-11-27T06:04:01.140923+00:00",
+  "sens": -1,
+  "note": "A",
+  "score": 65,
+  "methode": "Entrée raffinée / sniper",
+  "ordre": "SELL LIMIT",
+  "session": "hors session",
+  "poi": "Order Block Extrême (OB de CHoCH)",
+  "cle": "-1|3612|3689",
+  "marche": "XAUUSD",
+  "prix_alerte": 3641.97,
+  "entree": 3657.78,
+  "stop": 3682.99,
+  "tps": [
+   3606.46,
+   3567.4
+  ],
+  "rr": [
+   2.04,
+   3.59
+  ],
+  "statut": "en cours",
+  "resultat_R": 0.0,
+  "tp_touches": 0,
+  "date_entree": "2026-11-27T07:00:00+00:00",
+  "date_sortie": null,
+  "evenements": [
+   "▶️ 27/11 08:00 ordre déclenché à 3657.78"
   ]
  }
 ]
